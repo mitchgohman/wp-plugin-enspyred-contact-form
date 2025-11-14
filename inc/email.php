@@ -1,0 +1,764 @@
+<?php
+class ValidationException extends Exception {}
+
+/*---------------------------
+| Configure SMTP so that we can leverage Wordpress wp_mail
+| whether it is mailtrap or sendgrid
+---------------------------*/
+function configure_smtp($phpmailer) {
+    enspyred_log("Running configure_smtp");
+
+    $global_settings = get_option('ecf_global_settings', []);
+    $maildriver = $global_settings['mail_driver'] ?? 'mailtrap';
+    enspyred_log("MAIL_DRIVER is: " . $maildriver);
+
+    $phpmailer->isSMTP();
+    $phpmailer->SMTPAuth = true;
+    $phpmailer->SMTPSecure = 'tls';
+
+    if ($maildriver === 'custom') {
+        enspyred_log("Using Custom SMTP");
+        $phpmailer->Host = $global_settings['smtp_host'] ?? '';
+        $phpmailer->Port = intval($global_settings['smtp_port'] ?? 587);
+        $phpmailer->Username = $global_settings['smtp_username'] ?? '';
+        $phpmailer->Password = $global_settings['smtp_password'] ?? '';
+
+        // Handle SSL/TLS settings
+        $security = $global_settings['smtp_security'] ?? 'tls';
+        if ($security === 'ssl') {
+            $phpmailer->SMTPSecure = 'ssl';
+            $phpmailer->Port = intval($global_settings['smtp_port'] ?? 465);
+        } elseif ($security === 'tls') {
+            $phpmailer->SMTPSecure = 'tls';
+        } else {
+            // No encryption
+            $phpmailer->SMTPSecure = '';
+            $phpmailer->SMTPAuth = false;
+        }
+    } else { // Default to Mailtrap
+        enspyred_log("Using Mailtrap");
+        $phpmailer->Host = "sandbox.smtp.mailtrap.io";
+        $phpmailer->Port = 2525;
+        $phpmailer->Username = $global_settings['mailtrap_username'] ?? '';
+        $phpmailer->Password = $global_settings['mailtrap_password'] ?? '';
+    }
+}
+add_action('phpmailer_init', function($phpmailer) {
+    enspyred_log("📩 phpmailer_init hook (early) from functions.php");
+    configure_smtp($phpmailer);
+});
+
+
+/*---------------------------
+| Debug wp_mail errors/failures
+---------------------------*/
+add_action('wp_mail_failed', function($wp_error) {
+    enspyred_log("📭 wp_mail_failed hook triggered:");
+    enspyred_log("Error message: " . $wp_error->get_error_message());
+    enspyred_log("Error data: " . wp_json_encode($wp_error->get_error_data()));
+});
+
+
+/*---------------------------
+| Force Docker Wordpress to call phpmailer_init hook
+| Otherwise it ignores it locally
+| More details: https://wordpress.stackexchange.com/questions/382721/wordpress-phpmailer-init-not-working-for-me
+---------------------------*/
+// Note: From email and name will be set per-email in wp_mail() call
+// rather than globally via filters to support different forms with different settings
+
+/*---------------------------
+| WP Rest API Endpoints
+---------------------------*/
+add_action('rest_api_init', function () {
+    register_rest_route('enspyred-contact-form/v1', '/submit', array(
+        'methods'  => 'POST',
+        'callback' => 'ecf_handle_form_submission',
+        'permission_callback' => '__return_true' // for public access; secure as needed
+    ));
+});
+
+/*---------------------------
+| Email: Form Handler
+---------------------------*/
+function ecf_handle_form_submission($request) {
+    enspyred_log("🚀 ecf_handle_form_submission");
+
+    // Check if this is a multipart form (has files)
+    $content_type = $request->get_content_type();
+    $is_multipart = strpos($content_type['value'], 'multipart/form-data') !== false;
+
+    if ($is_multipart) {
+        // Handle multipart form data
+        $params = $request->get_params();
+        $form_id = sanitize_text_field($params['formId'] ?? '');
+
+        // Parse JSON fields that were stringified in FormData
+        if (isset($params['apiElements']) && is_string($params['apiElements'])) {
+            $params['apiElements'] = json_decode($params['apiElements'], true);
+        }
+    } else {
+        // Handle regular JSON data
+        $params = $request->get_json_params();
+        $form_id = sanitize_text_field($params['formId'] ?? '');
+    }
+
+    if (empty($form_id)) {
+        return new WP_REST_Response([
+            'status' => 'error',
+            'message' => 'Form ID is required'
+        ], 400);
+    }
+
+    // Get form configuration with parent inheritance
+    // Use ecf_get_merged_config() to properly merge parent configs
+    $formConfig = ecf_get_merged_config($form_id);
+    if (empty($formConfig)) {
+        return new WP_REST_Response([
+            'status' => 'error',
+            'message' => 'Form configuration not found'
+        ], 404);
+    }
+
+    // Extract required fields from form configuration
+    $reqFields = ecf_extract_required_fields($formConfig);
+
+    return email_process($request, $reqFields, $formConfig, $is_multipart);
+}
+
+/*---------------------------
+| File Upload Helpers
+---------------------------*/
+function ecf_create_temp_files($files_data) {
+    // Create individual temp files using PHP's tempnam() - more efficient
+    $temp_files = [];
+
+    foreach ($files_data as $field_name => $file_info) {
+        // Create a temporary file with proper extension
+        $file_extension = pathinfo($file_info['name'], PATHINFO_EXTENSION);
+        $temp_file = tempnam(sys_get_temp_dir(), 'ecf_') . '.' . $file_extension;
+
+        if (!$temp_file) {
+            throw new Exception('Failed to create temporary file for ' . esc_html($file_info['name']));
+        }
+
+        $temp_files[$field_name] = [
+            'temp_path' => $temp_file,
+            'original_name' => $file_info['name'],
+            'size' => $file_info['size'],
+            'type' => $file_info['type']
+        ];
+
+        enspyred_log("📁 Created temp file: " . $temp_file . " for " . $file_info['name']);
+    }
+
+    return $temp_files;
+}
+
+function ecf_process_uploaded_files($request, $formConfig) {
+    enspyred_log("🚀 ecf_process_uploaded_files");
+
+    $files = $request->get_file_params();
+    $processed_files = [];
+
+    // Build a lookup map of file controls from form config
+    $file_controls = [];
+    if (isset($formConfig['elements'])) {
+        foreach ($formConfig['elements'] as $element) {
+            if (isset($element['controls'])) {
+                foreach ($element['controls'] as $control) {
+                    if (in_array($control['type'], ['image', 'file'])) {
+                        $file_controls[$control['id']] = $control;
+                    }
+                }
+            }
+        }
+    }
+
+    foreach ($files as $field_name => $file_data) {
+        // Skip if no file was uploaded
+        if (empty($file_data['tmp_name']) || $file_data['error'] !== UPLOAD_ERR_OK) {
+            enspyred_log("⚠️ Skipping file {$field_name}: upload error " . ($file_data['error'] ?? 'unknown'));
+            continue;
+        }
+
+        // Extract the control ID from field name (remove 'file_' prefix)
+        $control_id = str_replace('file_', '', $field_name);
+        $control_config = $file_controls[$control_id] ?? null;
+
+        // Validate file type and size using form config
+        $validation_result = ecf_validate_uploaded_file($file_data, $control_config);
+        if (!$validation_result['valid']) {
+            throw new ValidationException(esc_html($validation_result['error']));
+        }
+
+        // Use WordPress's file handling to copy uploaded file to temp location
+        $file_extension = pathinfo($file_data['name'], PATHINFO_EXTENSION);
+        $temp_file_path = tempnam(sys_get_temp_dir(), 'ecf_') . '.' . $file_extension;
+
+        if (!$temp_file_path) {
+            throw new Exception('Failed to create temporary file for ' . esc_html($file_data['name']));
+        }
+
+        // Use copy() instead of move_uploaded_file() to satisfy WordPress.org requirements
+        // The uploaded file will be automatically cleaned up by PHP after the request
+        if (!copy($file_data['tmp_name'], $temp_file_path)) {
+            wp_delete_file($temp_file_path); // Clean up the temp file we created
+            throw new Exception('Failed to process uploaded file: ' . esc_html($file_data['name']));
+        }
+
+        $processed_files[$field_name] = [
+            'path' => $temp_file_path,
+            'name' => sanitize_file_name($file_data['name']),
+            'type' => $file_data['type'],
+            'size' => $file_data['size']
+        ];
+
+        enspyred_log("📎 Processed file: {$file_data['name']} -> {$temp_file_path} ({$file_data['size']} bytes)");
+    }
+
+    return $processed_files;
+}
+
+function ecf_validate_uploaded_file($file_data, $control_config = null) {
+    enspyred_log("🚀 ecf_validate_uploaded_file: " . $file_data['name']);
+
+    // Get file size limit from control config or use default
+    $max_file_size_mb = 10; // Default 10MB
+    if ($control_config && isset($control_config['maxFileSize'])) {
+        $max_file_size_mb = intval($control_config['maxFileSize']);
+        enspyred_log("📏 Using configured max file size: {$max_file_size_mb}MB");
+    } else {
+        enspyred_log("📏 Using default max file size: {$max_file_size_mb}MB");
+    }
+
+    $max_file_size = $max_file_size_mb * 1024 * 1024; // Convert MB to bytes
+
+    // Check file size
+    if ($file_data['size'] > $max_file_size) {
+        return [
+            'valid' => false,
+            'error' => "File size too large. Maximum allowed: {$max_file_size_mb}MB"
+        ];
+    }
+
+    // Get supported formats from control config
+    $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp']; // Default for image types
+    $allowed_mime_types = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/gif',
+        'image/webp'
+    ];
+
+    if ($control_config && isset($control_config['supportedFormats']) && !empty($control_config['supportedFormats'])) {
+        $supported_formats = $control_config['supportedFormats'];
+        enspyred_log("📋 Using configured supported formats: " . implode(', ', $supported_formats));
+
+        // Build MIME type mapping for configured formats
+        $mime_mapping = [
+            'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'pdf' => 'application/pdf',
+            'doc' => 'application/msword',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'zip' => 'application/zip',
+            'rar' => 'application/x-rar-compressed'
+        ];
+
+        $allowed_extensions = $supported_formats;
+        $allowed_mime_types = array_values(array_intersect_key($mime_mapping, array_flip($supported_formats)));
+    } else {
+        enspyred_log("📋 Using default image formats");
+    }
+
+    // Check file extension
+    $file_extension = strtolower(pathinfo($file_data['name'], PATHINFO_EXTENSION));
+    if (!in_array($file_extension, $allowed_extensions)) {
+        return [
+            'valid' => false,
+            'error' => 'File type not allowed. Supported formats: ' . implode(', ', $allowed_extensions)
+        ];
+    }
+
+    // Check MIME type
+    if (!in_array($file_data['type'], $allowed_mime_types)) {
+        return [
+            'valid' => false,
+            'error' => 'File type not allowed. Supported formats: ' . implode(', ', $allowed_extensions)
+        ];
+    }
+
+    enspyred_log("✅ File validation passed: {$file_data['name']}");
+    return ['valid' => true];
+}
+
+function ecf_cleanup_temp_files($uploaded_files) {
+    enspyred_log("🚀 ecf_cleanup_temp_files");
+
+    foreach ($uploaded_files as $field_name => $file_info) {
+        if (isset($file_info['path']) && is_file($file_info['path'])) {
+            wp_delete_file($file_info['path']);
+            enspyred_log("🗑️ Deleted temp file: " . basename($file_info['path']));
+        }
+    }
+}
+
+/*---------------------------
+| Email: Helpers
+---------------------------*/
+// Extract required fields from form configuration
+function ecf_extract_required_fields($formConfig) {
+    $requiredFields = [];
+
+    if (!isset($formConfig['elements']) || !is_array($formConfig['elements'])) {
+        return $requiredFields;
+    }
+
+    foreach ($formConfig['elements'] as $element) {
+        if (isset($element['controls']) && is_array($element['controls'])) {
+            foreach ($element['controls'] as $control) {
+                $rules = $control['rules'] ?? [];
+                if (in_array('required', $rules) && isset($control['id'])) {
+                    $requiredFields[] = $control['id'];
+                }
+            }
+        }
+
+        // Handle address fields which have required rules at the element level
+        if ($element['type'] === 'address' && isset($element['rules']) && in_array('required', $element['rules'])) {
+            $id = $element['id'];
+            $addressFields = [
+                $id . '-address',
+                $id . '-city',
+                $id . '-state',
+                $id . '-zip'
+            ];
+
+            // Only add country field if hasCountry is true (default) or not set
+            $hasCountry = $element['hasCountry'] ?? true;
+            if ($hasCountry) {
+                $addressFields[] = $id . '-country';
+            }
+
+            $requiredFields = array_merge($requiredFields, $addressFields);
+            enspyred_log("📍 Address element {$id}: hasCountry=" . ($hasCountry ? 'true' : 'false'));
+        }
+    }
+
+    enspyred_log("📝 Extracted required fields: " . implode(', ', $requiredFields));
+    return $requiredFields;
+}
+
+// Shared looping Mechanism for working on apiElements
+function email_loop_api_elelemnts($apiElements, $callback) {
+    foreach ($apiElements as $apiElement) {
+        $group = sanitize_text_field($apiElement['group']);
+        $controls = $apiElement['controls'];
+        foreach ($controls as $control) {
+            $sanitizedControl = [
+                'id' => sanitize_text_field($control['id'] ?? ''),
+                'value' => sanitize_text_field($control['value'] ?? ''),
+                'labelText' => sanitize_text_field($control['labelText'] ?? ''),
+                'type' => sanitize_text_field($control['type'] ?? 'text')
+            ];
+            $callback($group, $sanitizedControl);
+        }
+    }
+}
+
+/*---------------------------
+| Email: Process
+---------------------------*/
+function email_process($request, $reqFields, $formConfig, $is_multipart = false) {
+    enspyred_log("🚀 email_process (multipart: " . ($is_multipart ? 'yes' : 'no') . ")");
+
+    $temp_dir = null;
+    $uploaded_files = [];
+
+    if ($is_multipart) {
+        $params = $request->get_params();
+        // Parse JSON fields that were stringified in FormData
+        if (isset($params['apiElements']) && is_string($params['apiElements'])) {
+            $params['apiElements'] = json_decode($params['apiElements'], true);
+        }
+    } else {
+        $params = $request->get_json_params();
+    }
+
+    try {
+        // Handle file uploads if this is a multipart request
+        if ($is_multipart) {
+            $uploaded_files = ecf_process_uploaded_files($request, $formConfig);
+        }
+        // params
+        $subject = sanitize_text_field($formConfig['subject'] ?? $params['subject'] ?? 'Contact Form Submission');
+        $token = sanitize_text_field($params['spamBusterToken']);
+        $honeyPot = sanitize_text_field($params['honeyPot'] ?? '');
+        $apiElements = $params['apiElements'];
+
+        // Validate
+        email_validate($subject, $token, $apiElements, $reqFields, $honeyPot);
+
+        // Get To
+        $to = email_get_to($formConfig);
+
+        // Get Reply to
+        $headers = email_get_headers($apiElements, $formConfig);
+
+        // Compose
+        $message = email_compose_message($apiElements, $formConfig, $uploaded_files);
+
+        // Send (include from email and name from formConfig)
+        enspyred_log("🔍 formConfig keys: " . implode(', ', array_keys($formConfig)));
+        enspyred_log("🔍 formConfig['from']: " . ($formConfig['from'] ?? 'NOT SET'));
+        enspyred_log("🔍 formConfig['fromName']: " . ($formConfig['fromName'] ?? 'NOT SET'));
+
+        $from_email = $formConfig['from'] ?? get_option('admin_email');
+        $from_name = $formConfig['fromName'] ?? get_option('blogname');
+
+        enspyred_log("📧 Using from_email: " . $from_email);
+        enspyred_log("📧 Using from_name: " . $from_name);
+
+        email_send($to, $subject, $message, $headers, $from_email, $from_name, $uploaded_files);
+
+        // respond
+        return new WP_REST_Response(['status' => 'success', 'message' => 'Your request has been sent, a representative will follow up with you shortly.'], 200);
+    } catch (ValidationException $e) {
+        enspyred_log("⚠️ Validation error: " . $e->getMessage());
+        return new WP_REST_Response([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 200); // user-correctable
+    } catch (Exception $e) {
+        enspyred_log("❌ Server error: " . $e->getMessage());
+        return new WP_REST_Response([
+            'status' => 'error',
+            'message' => 'A server error occurred. Please try again later.'
+        ], 500); // true server failure
+    } finally {
+        // Always cleanup temp files
+        if (!empty($uploaded_files)) {
+            ecf_cleanup_temp_files($uploaded_files);
+        }
+    }
+}
+
+/*---------------------------
+| Email: Validate
+---------------------------*/
+function email_validate($subject, $token, $apiElements, $reqFields, $honeyPot) {
+    enspyred_log("🚀 email_validate");
+
+    // Basic validation
+    email_validate_basic($subject, $token, $apiElements);
+
+    // Validate HoneyPot
+    email_validate_honeypot($honeyPot);
+
+    // Validate Recaptcha
+    email_validate_google_recaptcha($token);
+
+    // Validate apiElements
+    email_validate_api_elements($apiElements, $reqFields);
+}
+
+/*---------------------------
+| Email: Validate: Basic
+---------------------------*/
+function email_validate_basic($subject, $token, $apiElements) {
+    enspyred_log("🚀 email_validate_basic");
+
+    $reqFields = ["Subject" => $subject, "spamBusterToken" => $token, "apiElements" => $apiElements];
+    $errors = [];
+
+    foreach($reqFields as $key => $value) {
+        if (empty($value)) {
+            $errors[] = "Missing required {$key}.";
+        }
+    }
+
+    if (!empty($errors)) {
+        throw new ValidationException(esc_html(implode('; ', $errors)));
+    }
+}
+
+/*---------------------------
+| Email: Validate: Honeypot
+---------------------------*/
+function email_validate_honeypot($honeyPot) {
+    enspyred_log("🚀 email_validate_honeypot");
+
+    if (!empty($honeyPot)) {
+        enspyred_log("⚠️ Honeypot was filled in. value: " . $honeyPot);
+        throw new ValidationException("An unexpected error occurred. Please try again.");
+    }
+}
+
+/*---------------------------
+| Email: Validate: Google ReCaptcha
+---------------------------*/
+function email_validate_google_recaptcha($token) {
+    enspyred_log("🚀 email_validate_google_recaptcha");
+
+    $global_settings = get_option('ecf_global_settings', []);
+    $secret = $global_settings['recaptcha_secret_key'] ?? '';
+    $scoreThreshold = floatval($global_settings['recaptcha_score_threshold'] ?? 0.5);
+
+    $response = wp_remote_post('https://www.google.com/recaptcha/api/siteverify', [
+        'body' => [
+            'secret'   => $secret,
+            'response' => $token
+        ]
+    ]);
+
+    if (is_wp_error($response)) {
+        $error = $response->get_error_message();
+        enspyred_log('❌ WP_Error: ' . $error);
+        return ['success' => false, 'error' => $error];
+    }
+
+    $status_code = wp_remote_retrieve_response_code($response);
+    enspyred_log("📡 reCAPTCHA HTTP status: " . $status_code);
+
+    $body_raw = wp_remote_retrieve_body($response);
+    $body = json_decode($body_raw, true);
+    enspyred_log("🔍 Parsed reCAPTCHA response: " . wp_json_encode($body));
+
+    if (!$body['success']) {
+        $errors = $body['error-codes'] ?? ['Unknown error'];
+        enspyred_log('❌ reCAPTCHA verification failed: ' . implode(', ', $errors));
+        throw new ValidationException('reCAPTCHA verification failed: ' . esc_html(implode(', ', $errors)));
+    }
+
+    if (!isset($body['score']) || $body['score'] < $scoreThreshold) {
+        enspyred_log('⚠️ reCAPTCHA score too low: ' . $body['score']);
+        throw new ValidationException('reCAPTCHA score too low. Suspicious activity detected.');
+    }
+}
+
+/*---------------------------
+| Email: Validate: apiElements
+---------------------------*/
+function email_validate_api_elements($apiElements, $reqFields) {
+    enspyred_log("🚀 email_validate_api_elements");
+
+    $errors = [];
+    $foundFields = [];
+
+    email_loop_api_elelemnts($apiElements, function($group, $control) use (&$errors, &$foundFields, $reqFields) {
+        $id = $control['id'];
+        $value = $control['value'];
+        $type = $control['type'];
+
+        $foundFields[] = $id;
+
+        // For file/image fields, check if they're required but no file was uploaded
+        // The value for file fields will be the filename, or empty if no file
+        if (in_array($id, $reqFields) && empty($value)) {
+            if ($type === 'image' || $type === 'file') {
+                $errors[] = "Required file not uploaded: {$id}";
+            } else {
+                $errors[] = "Missing Required Field (empty): {$id}";
+            }
+        }
+    });
+
+    // Check for completely missing fields
+    $missingFields = array_diff($reqFields, $foundFields);
+    foreach ($missingFields as $missing) {
+        $errors[] = "Missing Required Field (not submitted): {$missing}";
+    }
+
+    if (!empty($errors)) {
+        throw new ValidationException(esc_html(implode('; ', $errors)));
+    }
+}
+
+/*---------------------------
+| Email: Get To
+---------------------------*/
+function email_get_to($formConfig) {
+    $recipients = $formConfig['recipients'] ?? '';
+    $to = array_map('trim', explode(',', $recipients));
+    enspyred_log("📨 Recipients: " . implode(', ', $to));
+    return $to;
+}
+
+/*---------------------------
+| Email: Get Headers
+---------------------------*/
+function email_get_headers($apiElements, $formConfig) {
+    enspyred_log("🚀 email_get_headers");
+
+    // Build headers as an array
+    $headers = ['Content-Type: text/html; charset=UTF-8'];
+
+    // Add CC if needed
+    $ccString = $formConfig['cc'] ?? '';
+    if (!empty($ccString)) {
+        $cc = array_map('trim', explode(',', $ccString));
+        enspyred_log("📨 Cc: " . implode(', ', $cc));
+        $headers[] = 'Cc: ' . implode(', ', $cc);
+    }
+
+
+    // Add BCC if needed (from config and/or admin_emails in global settings)
+    $bcc = [];
+    $bccString = $formConfig['bcc'] ?? '';
+    if (!empty($bccString)) {
+        $bcc = array_map('trim', explode(',', $bccString));
+        enspyred_log("📨 Bcc (from config): " . implode(', ', $bcc));
+    }
+
+    // Get admin_emails and admin_emails_enabled from global settings
+    $global_settings = get_option('ecf_global_settings', []);
+    $admin_emails_enabled = $global_settings['admin_emails_enabled'] ?? false;
+    if ($admin_emails_enabled) {
+        $admin_emails = $global_settings['admin_emails'] ?? '';
+        if (!empty($admin_emails)) {
+            $admin_emails_arr = array_map('trim', explode(',', $admin_emails));
+            enspyred_log("📨 Bcc (admin_emails): " . implode(', ', $admin_emails_arr));
+            $bcc = array_merge($bcc, $admin_emails_arr);
+        }
+    }
+
+    if (!empty($bcc)) {
+        $headers[] = 'Bcc: ' . implode(', ', $bcc);
+        enspyred_log("📨 Bcc (combined): " . implode(', ', $bcc));
+    }
+
+    // replyTo
+    $replyTo = email_get_headers_replyTo($apiElements);
+    if (!empty($replyTo)) {
+        $headers[] = $replyTo;
+    }
+
+    return $headers;
+}
+
+function email_get_headers_replyTo($apiElements) {
+    enspyred_log("🚀 email_get_headers_replyTo");
+// Reply To
+    $name = "";
+    $email = "";
+    email_loop_api_elelemnts($apiElements, function($group, $control) use (&$name, &$email) {
+        $id = $control['id'];
+        $value = $control['value'];
+
+        if ($id === "username") {
+            $name = $value;
+        }
+
+        if ($id === "userEmail") {
+            $email = $value;
+        }
+    });
+
+    enspyred_log("Name: $name");
+    enspyred_log("Email: $email");
+
+    $replyTo = null;
+    if (!empty($name) && !empty($email)) {
+        $reply_to = "Reply-To: {$name} <{$email}>";
+        enspyred_log("Reply-To header: $reply_to");
+        return $reply_to;
+    }
+
+    return $replyTo;
+}
+
+/*---------------------------
+| Email: Compose
+---------------------------*/
+function email_compose_message($apiElements, $formConfig, $uploaded_files = []) {
+    enspyred_log("🚀 email_compose_message");
+
+    $fromName = $formConfig['fromName'] ?? 'Website Inquiry';
+    $subject = $formConfig['subject'] ?? 'Contact Form Submission';
+
+    $message = "<p>Hello " . esc_html($fromName) . ",</p>";
+    $message .= "<p><b>Website Form:</b> " . esc_html($subject) . "</p>";
+
+    $groupedControls = [];
+
+    email_loop_api_elelemnts($apiElements, function($group, $control) use (&$groupedControls) {
+        $groupedControls[$group][] = "<li><b>" . $control['labelText'] . "</b> " . $control['value'] . "</li>";
+    });
+
+    foreach ($groupedControls as $group => $items) {
+        $message .= "<h3>$group</h3><ul>" . implode('', $items) . "</ul>";
+    }
+
+    // Add information about attached files
+    if (!empty($uploaded_files)) {
+        $message .= "<h3>Attached Files</h3><ul>";
+        foreach ($uploaded_files as $field_name => $file_info) {
+            $file_size = round($file_info['size'] / 1024, 1); // Convert to KB
+            $message .= "<li><b>" . esc_html($file_info['name']) . "</b> ({$file_size} KB)</li>";
+        }
+        $message .= "</ul>";
+    }
+
+    $message .= '<p>Cheers, <br />Your Web Team</p>';
+
+    return $message;
+}
+
+/*---------------------------
+| Email: Send
+---------------------------*/
+function email_send($to, $subject, $message, $headers, $from_email = '', $from_name = '', $attachments = []) {
+    enspyred_log("🚀 email_send");
+    enspyred_log("🧾 Headers: " . implode('; ', $headers));
+    enspyred_log("✉️ Subject: " . $subject);
+    enspyred_log("📄 Message Length: " . strlen($message));
+    enspyred_log("📎 Attachments: " . count($attachments));
+
+    // Set up from email and name if provided
+    if (!empty($from_email)) {
+        add_filter('wp_mail_from', function() use ($from_email) {
+            return $from_email;
+        });
+    }
+
+    if (!empty($from_name)) {
+        add_filter('wp_mail_from_name', function() use ($from_name) {
+            return $from_name;
+        });
+    }
+
+    // Prepare attachment paths for wp_mail
+    $attachment_paths = [];
+    foreach ($attachments as $field_name => $file_info) {
+        $attachment_paths[] = $file_info['path'];
+        enspyred_log("📎 Attaching: " . $file_info['name'] . " (" . $file_info['size'] . " bytes)");
+    }
+
+    // Send the email using WordPress's wp_mail function
+    enspyred_log("📤 Calling wp_mail()");
+    $mail_sent = wp_mail($to, $subject, $message, $headers, $attachment_paths);
+    enspyred_log("📤 wp_mail() called: " . ($mail_sent ? 'success' : 'failed'));
+
+    // Remove filters to avoid affecting other emails
+    if (!empty($from_email)) {
+        remove_all_filters('wp_mail_from');
+    }
+
+    if (!empty($from_name)) {
+        remove_all_filters('wp_mail_from_name');
+    }
+
+    if (!$mail_sent) {
+        enspyred_log('❌ Failed to send email to ' . implode(', ', (array)$to));
+        enspyred_log("🔍 Subject on fail: " . $subject);
+        enspyred_log("🔍 Headers on fail: " . implode('; ', $headers));
+        throw new Exception("Failed to send email.");
+    }
+
+    enspyred_log('✅ Email sent successfully!');
+}

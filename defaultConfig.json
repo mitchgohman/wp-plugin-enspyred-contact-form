@@ -1,0 +1,143 @@
+{
+    "submitButtonText": "Send Message",
+    "trackingId": "ContactForm",
+    "asyncApiCall": "/email/contact",
+    "subject": "Website Contact Form Inquiry",
+    "from": "noreply@example.com",
+    "fromName": "Website Contact Form",
+    "recipients": "admin@example.com",
+    "cc": "",
+    "elements": [
+        {
+            "id": "general",
+            "legend": {
+                "title": "General"
+            },
+            "type": "fieldset",
+            "controls": [
+                {
+                    "id": "username",
+                    "type": "text",
+                    "labelText": "Name",
+                    "testValue": "Mitch Gohman",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "jobtitle",
+                    "type": "text",
+                    "labelText": "Title",
+                    "testValue": "CEO",
+                    "rules": []
+                },
+                {
+                    "id": "company",
+                    "type": "text",
+                    "labelText": "Company",
+                    "testValue": "Enspyred",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "userEmail",
+                    "type": "text",
+                    "labelText": "Email",
+                    "testValue": "test-user@gmail.com",
+                    "rules": [
+                        "required",
+                        "email"
+                    ]
+                },
+                {
+                    "id": "phone",
+                    "type": "phone",
+                    "labelText": "Phone",
+                    "testValue": "+16265904974",
+                    "rules": [
+                        "required",
+                        "phone"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "billing",
+            "legend": {
+                "title": "Billing Address"
+            },
+            "type": "address",
+            "controls": [],
+            "rules": [
+                "required"
+            ],
+            "hasCountry": true,
+            "selectState": {
+                "value": {
+                    "value": "CA",
+                    "label": "CA"
+                },
+                "options": [
+                    {
+                        "value": "CA",
+                        "label": "CA"
+                    },
+                    {
+                        "value": "NV",
+                        "label": "NV"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "service",
+            "legend": {
+                "title": "Service Address",
+                "description": "The address of where work is to be done"
+            },
+            "type": "address",
+            "controls": [],
+            "rules": [
+                "required"
+            ],
+            "hasCountry": true,
+            "selectState": {
+                "value": {
+                    "value": "CA",
+                    "label": "CA"
+                },
+                "options": [
+                    {
+                        "value": "CA",
+                        "label": "CA"
+                    },
+                    {
+                        "value": "NV",
+                        "label": "NV"
+                    }
+                ]
+            },
+            "sameAs": "billing"
+        },
+        {
+            "id": "request",
+            "legend": {
+                "title": "Request"
+            },
+            "type": "fieldset",
+            "controls": [
+                {
+                    "id": "request",
+                    "type": "textarea",
+                    "labelText": "Request",
+                    "placeholder": "Please provide a brief description of your request...",
+                    "testValue": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus id nulla et ante gravida malesuada quis quis nibh. Aliquam erat volutpat. Aenean porta iaculis ex vitae sodales.",
+                    "rules": [
+                        "required"
+                    ]
+                }
+            ]
+        }
+    ]
+}
