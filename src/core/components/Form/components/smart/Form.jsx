@@ -19,7 +19,11 @@ const Form = ({ children }) => {
 
     if (formStatus === "submitted") return null;
 
-    return <FormStyled onSubmit={handleSubmit}>{children}</FormStyled>;
+    return (
+        <FormStyled data-version="1.0.2" onSubmit={handleSubmit}>
+            {children}
+        </FormStyled>
+    );
 };
 
 export default Form;
