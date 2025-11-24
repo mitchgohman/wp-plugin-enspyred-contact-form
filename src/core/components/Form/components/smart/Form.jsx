@@ -20,7 +20,7 @@ const Form = ({ children }) => {
     if (formStatus === "submitted") return null;
 
     return (
-        <FormStyled data-version="1.0.2" onSubmit={handleSubmit}>
+        <FormStyled data-version="1.0.3" onSubmit={handleSubmit}>
             {children}
         </FormStyled>
     );
