@@ -102,7 +102,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     border-radius: 5px;
 `,vE=()=>{const{globalMessage:t}=Qt(),{status:n,message:a}=t;return n==="none"?null:W.jsx(gE,{$status:n,dangerouslySetInnerHTML:{__html:a}})},bE=nt.form`
     max-width: 600px;
-`,rv=({children:t})=>{const{elements:n,onSubmit:a,formStatus:i}=Qt(),u=s=>{s.preventDefault(),a(n)};return i==="submitted"?null:W.jsx(bE,{"data-version":"1.0.4",onSubmit:u,children:t})};rv.propTypes={children:R.any};const $E=nt.fieldset`
+`,rv=({children:t})=>{const{elements:n,onSubmit:a,formStatus:i}=Qt(),u=s=>{s.preventDefault(),a(n)};return i==="submitted"?null:W.jsx(bE,{"data-version":"1.0.5",onSubmit:u,children:t})};rv.propTypes={children:R.any};const $E=nt.fieldset`
     ${({$isHidden:t})=>t&&"display: none;"}
 
     margin-bottom: 50px;
@@ -254,4 +254,4 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
         box-sizing: border-box;
     }
 `,Hx=t=>W.jsx(Bx,{children:W.jsx(sb,{...t})}),Vx=async t=>{var n;try{return(await ta.get(`config?key=${encodeURIComponent(t)}`)).data}catch(a){throw new Error(`Config load failed (${((n=a.response)==null?void 0:n.status)||"network error"})`)}},f3=()=>{document.querySelectorAll(".enspyred-plugin-contact-form").forEach(async n=>{if(n.__ecf_mounted)return;n.__ecf_mounted=!0;const a=n.dataset.ecfConfig||"default",i=H$.createRoot(n);i.render(W.jsx("div",{"aria-live":"polite",children:"Loading form…"}));try{const u=await Vx(a),{globalSettings:s,formConfig:d}=u;g8({formConfig:d}),i.render(W.jsx(Hx,{globalSettings:s,formConfig:d,formId:a}))}catch(u){Ya(u),i.render(W.jsxs("div",{"aria-live":"polite",style:{color:"crimson"},children:["Failed to load form config: ",a]}))}})};document.readyState==="loading"?document.addEventListener("DOMContentLoaded",f3):f3();
-//# sourceMappingURL=index-CsQsp23n.js.map
+//# sourceMappingURL=index-H-PWjYp7.js.map
