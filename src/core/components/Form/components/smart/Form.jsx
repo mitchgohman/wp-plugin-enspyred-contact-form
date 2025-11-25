@@ -1,3 +1,4 @@
+/* global __PLUGIN_VERSION__ */
 import PropTypes from "prop-types";
 import styled from "styled-components";
 
@@ -20,7 +21,7 @@ const Form = ({ children }) => {
     if (formStatus === "submitted") return null;
 
     return (
-        <FormStyled data-version="1.0.3" onSubmit={handleSubmit}>
+        <FormStyled data-version={__PLUGIN_VERSION__} onSubmit={handleSubmit}>
             {children}
         </FormStyled>
     );

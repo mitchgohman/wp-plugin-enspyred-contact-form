@@ -66,15 +66,15 @@ npm run sync-version
 # Step 3: Build and package
 echo -e "\n${BLUE}Step 3: Building and packaging plugin...${NC}"
 npm run package
-echo -e "${GREEN}✓ Clean distribution created in ../../../dist/enspyred-contact-form/${NC}"
+echo -e "${GREEN}✓ Clean distribution created in ./dist/enspyred-contact-form/${NC}"
 echo -e "${GREEN}✓ Ready for ZIP creation${NC}"
 
 # Step 4: Create ZIP file
 echo -e "\n${BLUE}Step 4: Creating ZIP file...${NC}"
-cd ../../../dist
+cd ./dist
 zip -r enspyred-contact-form.zip enspyred-contact-form -x "*.DS_Store"
 cd - > /dev/null
-echo -e "${GREEN}✓ ZIP file created: ../../../dist/enspyred-contact-form.zip${NC}"
+echo -e "${GREEN}✓ ZIP file created: ./dist/enspyred-contact-form.zip${NC}"
 
 # Step 5: Git commit and tag
 echo -e "\n${BLUE}Step 5: Creating git commit and tag...${NC}"
@@ -89,10 +89,10 @@ read -p "Push to GitHub now? (Y/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Nn]$ ]]; then
   echo -e "${YELLOW}⚠️  Skipping push. Remember to push manually:${NC}"
-  echo -e "${YELLOW}   git push origin master${NC}"
+  echo -e "${YELLOW}   git push origin main${NC}"
   echo -e "${YELLOW}   git push origin v${NEW_VERSION}${NC}"
 else
-  git push origin master
+  git push origin main
   git push origin "v${NEW_VERSION}"
   echo -e "${GREEN}✓ Pushed to GitHub${NC}"
 fi
@@ -110,4 +110,4 @@ echo -e "   4. Attach file: ${BLUE}dist/enspyred-contact-form.zip${NC}"
 echo -e "   5. Publish release\n"
 
 echo -e "${GREEN}Distribution ZIP location:${NC}"
-echo -e "   $(cd ../../../dist && pwd)/enspyred-contact-form.zip\n"
+echo -e "   $(cd ./dist && pwd)/enspyred-contact-form.zip\n"

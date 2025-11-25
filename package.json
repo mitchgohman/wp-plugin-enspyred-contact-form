@@ -11,7 +11,7 @@
         "sync-version": "node sync-version.js",
         "prepackage": "npm run sync-version",
         "package": "npm run build && npm run package:create",
-        "package:create": "rm -rf ../../../dist/enspyred-contact-form && mkdir -p ../../../dist/enspyred-contact-form && rsync -av --exclude-from=.distignore . ../../../dist/enspyred-contact-form/ && find ../../../dist/enspyred-contact-form -name '.DS_Store' -delete"
+        "package:create": "rm -rf dist/enspyred-contact-form && mkdir -p dist/enspyred-contact-form && rsync -av --exclude-from=.distignore . dist/enspyred-contact-form/ && find dist/enspyred-contact-form -name '.DS_Store' -delete"
     },
     "dependencies": {
         "axios": "^1.9.0",

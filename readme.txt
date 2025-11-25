@@ -3,7 +3,7 @@ Contributors: enspyred
 Tags: contact form, react, recaptcha, spam protection, email
 Requires at least: 6.0
 Tested up to: 6.8
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -42,10 +42,18 @@ Form data is processed securely through the WordPress REST API and can be config
 
 == Installation ==
 
-1. Download the latest release ZIP from GitHub: https://github.com/enspyred/wp-plugin-enspyred-contact-form/releases
+= IMPORTANT: Download the Correct ZIP File =
+
+**DO NOT** download the repository ZIP from the main branch! The repository includes development files (node_modules, source code, etc.) totaling ~129MB and will not work properly when installed in WordPress.
+
+**ALWAYS** download the official release ZIP from GitHub Releases. These are clean, production-ready distributions (~2-3MB) that contain only the necessary files.
+
+= Installation Steps =
+
+1. Download the latest **release ZIP** from GitHub: https://github.com/enspyred/wp-plugin-enspyred-contact-form/releases
 2. Log in to your WordPress admin panel
 3. Navigate to Plugins > Add New > Upload Plugin
-4. Choose the downloaded ZIP file and click "Install Now"
+4. Choose the downloaded release ZIP file and click "Install Now"
 5. Activate the plugin
 6. Follow the configuration steps below
 
@@ -96,6 +104,17 @@ PHP 8.0 or higher is required for optimal performance and security.
 4. Form configuration options
 
 == Changelog ==
+
+= 1.0.3 =
+* Fixed release workflow for standalone plugin distribution
+* Added dynamic version tracking in form component
+* Improved build and packaging process
+
+= 1.0.2 =
+* Updates and improvements
+
+= 1.0.1 =
+* Bug fixes and optimizations
 
 = 1.0.0 =
 * Initial release
