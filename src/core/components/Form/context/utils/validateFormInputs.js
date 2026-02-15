@@ -6,13 +6,25 @@ export const isEmailValid = (email) => {
 };
 
 export const validateFormControl = (control) => {
-    const { labelText, rules = [], value } = control;
+    const { labelText, rules = [], value, type } = control;
     let errorMessage = "";
     let isValid = true;
 
-    if (rules.includes("required") && (!value || value.length === 0)) {
-        errorMessage = `${labelText} is required.`;
-        isValid = false;
+    // Handle required validation for different types
+    if (rules.includes("required")) {
+        if (type === "checkbox") {
+            // For checkboxes, required means it must be checked (true)
+            if (value !== true) {
+                errorMessage = `${labelText} is required.`;
+                isValid = false;
+            }
+        } else {
+            // For other types, check if value is empty or has no length
+            if (!value || value.length === 0) {
+                errorMessage = `${labelText} is required.`;
+                isValid = false;
+            }
+        }
     } else if (rules.includes("email") && !isEmailValid(value)) {
         errorMessage = `${labelText} is not a valid email.`;
         isValid = false;

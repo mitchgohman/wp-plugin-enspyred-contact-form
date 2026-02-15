@@ -14,11 +14,20 @@ const LabelStyled = styled.label`
 `;
 
 // component
-const Label = ({ inputId, labelText, isRequired = false }) => {
+const Label = ({
+    inputId,
+    labelText,
+    isRequired = false,
+    dangerouslySetHTML = false,
+}) => {
     return (
         <LabelStyled htmlFor={inputId}>
             {isRequired && <span className="required">*</span>}
-            {labelText}:
+            {dangerouslySetHTML ? (
+                <span dangerouslySetInnerHTML={{ __html: labelText }} />
+            ) : (
+                <>{labelText}:</>
+            )}
         </LabelStyled>
     );
 };
@@ -30,4 +39,5 @@ Label.propTypes = {
     inputId: PropTypes.string.isRequired,
     labelText: PropTypes.string.isRequired,
     isRequired: PropTypes.bool,
+    dangerouslySetHTML: PropTypes.bool,
 };

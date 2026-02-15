@@ -193,6 +193,22 @@
                     "rules": [
                         "required"
                     ]
+                },
+                {
+                    "id": "newsletter",
+                    "type": "checkbox",
+                    "labelText": "Subscribe to our newsletter",
+                    "value": false,
+                    "rules": []
+                },
+                {
+                    "id": "terms",
+                    "type": "checkbox",
+                    "labelText": "I agree to the terms and conditions",
+                    "value": false,
+                    "rules": [
+                        "required"
+                    ]
                 }
             ]
         }

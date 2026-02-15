@@ -232,6 +232,18 @@
                     "rules": [
                         "required"
                     ]
+                },
+                {
+                    "id": "temperamentTestConfirm",
+                    "type": "checkbox",
+                    "orientation": "side-by-side",
+                    "preText": "<p>All temperament test dogs are dropped off at 7am, so the new dog of the day is the first to come in and he/she can meet each daycare dog one at a time sporadically as they come in for the day. This makes for a much less stressful and more enjoyable first day for the new pup! Temperament tests are scheduled in advance on Tuesdays, Wednesdays, and Thursdays.</p><p>Temperament tests cost $35 per dog. If all goes well and we don't have any issues that require an early pick-up, your dog will get a complimentary day of daycare on the same day of the temperament test (immediately following the main \"meet and greet\" portion of the temperament test that happens between 7-10 am). Pick up will be between 5-6 pm for this day only (typically it is 4-6 pm). This allows your dog to have a full day of fun and allows us a chance for further evaluation. You will see your dog introduced in our daily Facebook video/pics and/or our Instagram videos. New customers usually get a big kick out of that! We usually post between 4-6 pm.</p><p>If we have any serious issues at any time during the temperament test day, we will contact you and your dog may unfortunately need to be picked up right away. Please be prepared for that possibility.</p>",
+                    "labelText": "Please confirm",
+                    "dangerouslySetHTML": true,
+                    "value": false,
+                    "rules": [
+                        "required"
+                    ]
                 }
             ]
         }

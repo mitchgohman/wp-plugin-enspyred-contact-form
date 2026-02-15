@@ -10,6 +10,7 @@ import Phone from "../Controls/Phone";
 import HoneyPot from "../Controls/HoneyPot";
 import Input from "../Controls/Input";
 import Image from "../Controls/Image";
+import Checkbox from "../Controls/Checkbox";
 
 const Controls = ({ element }) => {
     const { controls } = element;
@@ -31,6 +32,9 @@ const Controls = ({ element }) => {
                 break;
             case "image":
                 ControlComponent = Image;
+                break;
+            case "checkbox":
+                ControlComponent = Checkbox;
                 break;
             default:
                 ControlComponent = Input;

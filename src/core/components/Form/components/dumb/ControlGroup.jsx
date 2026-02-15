@@ -37,6 +37,18 @@ const ErrorMessage = styled.div`
     font-weight: bold;
 `;
 
+const PreText = styled.div`
+    margin-bottom: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+`;
+
+const PostText = styled.div`
+    margin-top: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+`;
+
 // component
 const ControlGroup = ({
     children,
@@ -45,6 +57,9 @@ const ControlGroup = ({
     errorMessage = "",
     isRequired = false,
     orientation,
+    preText,
+    postText,
+    dangerouslySetHTML = false,
 }) => {
     const { orientation: globalOrientation } = useUniversalForm();
     const resolved = orientation || globalOrientation || "side-by-side";
@@ -57,15 +72,30 @@ const ControlGroup = ({
                     inputId={id}
                     labelText={labelText}
                     isRequired={isRequired}
+                    dangerouslySetHTML={dangerouslySetHTML}
                 />
             </LabelWrapper>
             <ControlWrapper>
+                {preText &&
+                    (dangerouslySetHTML ? (
+                        <PreText dangerouslySetInnerHTML={{ __html: preText }} />
+                    ) : (
+                        <PreText>{preText}</PreText>
+                    ))}
                 <div className="control">{children}</div>
                 {errorMessage && (
                     <ErrorMessage className="form-error-message">
                         {errorMessage}
                     </ErrorMessage>
                 )}
+                {postText &&
+                    (dangerouslySetHTML ? (
+                        <PostText
+                            dangerouslySetInnerHTML={{ __html: postText }}
+                        />
+                    ) : (
+                        <PostText>{postText}</PostText>
+                    ))}
             </ControlWrapper>
         </ControlGroupStyled>
     );
@@ -81,4 +111,7 @@ ControlGroup.propTypes = {
     errorMessage: PropTypes.string,
     isRequired: PropTypes.bool,
     orientation: PropTypes.oneOf(["side-by-side", "stacked"]),
+    preText: PropTypes.string,
+    postText: PropTypes.string,
+    dangerouslySetHTML: PropTypes.bool,
 };
