@@ -1,20 +1,19 @@
 export const DEFAULT_GLOBAL_MESSAGE = { status: "none", message: "" };
 
 const isTestingHoneyPot = import.meta.env.VITE_FORMS_TEST_HONEYPOT === "true";
-const testAddFiller = import.meta.env.VITE_FORMS_TEST_FILLER === "true";
 
-export const getDefaultState = ({ elements, hasHoneyPot, subject }) => {
+export const getDefaultState = ({ elements, hasHoneyPot, subject, debug = false }) => {
     return {
         elements: enhanceElements(
             elements,
             hasHoneyPot,
             isTestingHoneyPot,
-            testAddFiller
+            debug,
         ),
         formStatus: "idle",
         formSubmitAttempted: false,
         globalMessage: DEFAULT_GLOBAL_MESSAGE,
-        subject: getSubject(testAddFiller, subject),
+        subject: getSubject(debug, subject),
         honeyPot: {
             hasHoneyPot,
             isEmpty: true,
@@ -23,8 +22,8 @@ export const getDefaultState = ({ elements, hasHoneyPot, subject }) => {
     };
 };
 
-const getSubject = (testAddFiller, subject) => {
-    return testAddFiller
+const getSubject = (debug, subject) => {
+    return debug
         ? `${subject}: Test ${new Date().toLocaleString()}`
         : subject;
 };
@@ -33,20 +32,20 @@ const enhanceElements = (
     elements,
     hasHoneyPot,
     isTestingHoneyPot,
-    testAddFiller
+    debug,
 ) => {
     let enhancedElements = elements.map((element) => {
         const { type } = element;
 
         if (type === "address") {
-            return enhanceAddressElement(element, testAddFiller);
+            return enhanceAddressElement(element, debug);
         }
 
         if (type === "table") {
-            return enhanceTableElement(element, testAddFiller);
+            return enhanceTableElement(element, debug);
         }
 
-        return enhanceElement(element, testAddFiller);
+        return enhanceElement(element, debug);
     });
 
     if (hasHoneyPot) {
@@ -60,9 +59,9 @@ const enhanceElements = (
 };
 
 // Standard FormInput
-const enhanceElement = (element, testAddFiller) => {
+const enhanceElement = (element, debug) => {
     const newControls = element.controls.map((i) => {
-        if (testAddFiller) {
+        if (debug) {
             i.value = i.testValue;
         }
         return i;
@@ -75,7 +74,7 @@ const enhanceElement = (element, testAddFiller) => {
 };
 
 // Address Augmentation
-const enhanceAddressElement = (element, testAddFiller) => {
+const enhanceAddressElement = (element, debug) => {
     const { id, rules, selectState, hasCountry } = element;
 
     let controls = [];
@@ -84,14 +83,14 @@ const enhanceAddressElement = (element, testAddFiller) => {
         id: `${id}-address`,
         type: "text",
         labelText: "Address",
-        value: testAddFiller ? "123 Anywhere Street" : "",
+        value: debug ? "123 Anywhere Street" : "",
         rules,
     });
     controls.push({
         id: `${id}-city`,
         type: "text",
         labelText: "City",
-        value: testAddFiller ? "Colorado Springs" : "",
+        value: debug ? "Colorado Springs" : "",
         rules,
     });
 
@@ -111,7 +110,7 @@ const enhanceAddressElement = (element, testAddFiller) => {
     } else {
         controls.push({
             ...commonStateProps,
-            value: testAddFiller ? "CA" : "",
+            value: debug ? "IL" : "",
             type: "text",
         });
     }
@@ -120,7 +119,7 @@ const enhanceAddressElement = (element, testAddFiller) => {
         id: `${id}-zip`,
         type: "text",
         labelText: "Zip",
-        value: testAddFiller ? "80922" : "",
+        value: debug ? "80922" : "",
         rules,
     });
 
@@ -129,7 +128,7 @@ const enhanceAddressElement = (element, testAddFiller) => {
             id: `${id}-country`,
             type: "text",
             labelText: "Country",
-            value: testAddFiller ? "United States of America" : "",
+            value: debug ? "United States of America" : "",
             rules,
         });
     }
@@ -141,7 +140,7 @@ const enhanceAddressElement = (element, testAddFiller) => {
 };
 
 // Table Augmentation
-const enhanceTableElement = (element, testAddFiller) => {
+const enhanceTableElement = (element, debug) => {
     const { id, columns, rows } = element;
 
     const controls = [];
@@ -158,15 +157,13 @@ const enhanceTableElement = (element, testAddFiller) => {
                 id: `${id}-r${rowNum}-${column.key}`,
                 type: column.type || "text",
                 labelText: `Row ${rowNum} - ${column.label}`,
-                value: testAddFiller ? `Test ${column.label} ${rowNum}` : "",
+                value: debug ? `Test ${column.label} ${rowNum}` : "",
                 rules,
             };
 
             if (column.type === "select" && column.options) {
                 control.options = column.options;
-                control.value = testAddFiller
-                    ? column.options[0] || ""
-                    : "";
+                control.value = debug ? column.options[0] || "" : "";
             }
 
             controls.push(control);

@@ -1,3 +1,5 @@
+import { parsePhoneNumber } from "react-phone-number-input";
+
 export const getFormData = ({
     subject,
     elements,
@@ -72,7 +74,24 @@ const getApiElements = (elements) => {
                     }
 
                     // unwrap select elements
-                    const finalValue = value?.value || value;
+                    let finalValue = value?.value || value;
+
+                    // Format phone numbers for human readability in emails
+                    if (controlType === "phone" && finalValue) {
+                        try {
+                            const phoneNumber = parsePhoneNumber(finalValue);
+                            if (phoneNumber) {
+                                // Use formatInternational for format like: +1 (626) 590-4974
+                                finalValue = phoneNumber.formatInternational();
+                            }
+                        } catch (error) {
+                            // If parsing fails, keep the original value
+                            console.warn(
+                                "Phone number formatting failed:",
+                                error,
+                            );
+                        }
+                    }
 
                     return {
                         id,
@@ -80,7 +99,7 @@ const getApiElements = (elements) => {
                         value: finalValue,
                         type: controlType,
                     };
-                }
+                },
             );
 
             apiElements.push({

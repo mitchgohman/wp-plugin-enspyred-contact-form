@@ -7,6 +7,7 @@
     "recipients": "diggityd@diggitydoggy.com",
     "cc": "",
     "orientation": "stacked",
+    "debug": true,
     "elements": [
         {
             "id": "customerinfo",
@@ -19,6 +20,7 @@
                     "id": "username",
                     "type": "text",
                     "labelText": "Customer Name(s)",
+                    "testValue": "Mitch Gohman Test",
                     "rules": [
                         "required"
                     ]
@@ -27,6 +29,7 @@
                     "id": "phone",
                     "type": "phone",
                     "labelText": "Cell Number(s)",
+                    "testValue": "+16265904974",
                     "rules": [
                         "required",
                         "phone"
@@ -36,23 +39,17 @@
                     "id": "userEmail",
                     "type": "text",
                     "labelText": "Preferred Email",
+                    "testValue": "sarah.johnson@example.com",
                     "rules": [
                         "required",
                         "email"
                     ]
                 },
                 {
-                    "id": "homeAddress",
-                    "type": "text",
-                    "labelText": "Home Address (Street Address, City, State, & Zip)",
-                    "rules": [
-                        "required"
-                    ]
-                },
-                {
                     "id": "veterinarian",
                     "type": "text",
                     "labelText": "Veterinarian",
+                    "testValue": "Dr. Emily Carter - Oakwood Animal Hospital",
                     "rules": [
                         "required"
                     ]
@@ -61,6 +58,7 @@
                     "id": "vetPhone",
                     "type": "phone",
                     "labelText": "Veterinarian's Phone Number",
+                    "testValue": "+13125551234",
                     "rules": [
                         "required",
                         "phone"
@@ -70,6 +68,7 @@
                     "id": "emergencyContact",
                     "type": "text",
                     "labelText": "Emergency Contact",
+                    "testValue": "Lisa Thompson",
                     "rules": [
                         "required"
                     ]
@@ -78,12 +77,25 @@
                     "id": "emergencyPhone",
                     "type": "phone",
                     "labelText": "Emergency Contact Phone Number",
+                    "testValue": "+16305559876",
                     "rules": [
                         "required",
                         "phone"
                     ]
                 }
             ]
+        },
+        {
+            "id": "homeAddress",
+            "legend": {
+                "title": "Home Address"
+            },
+            "type": "address",
+            "controls": [],
+            "rules": [
+                "required"
+            ],
+            "hasCountry": false
         },
         {
             "id": "generalquestions",
@@ -96,6 +108,7 @@
                     "id": "howDidYouHear",
                     "type": "textarea",
                     "labelText": "How did you hear of us? Please mention each source if there is more than one.",
+                    "testValue": "I found you through a Google search and also saw your excellent reviews on Yelp. My neighbor Jessica recommended you highly!",
                     "rules": [
                         "required"
                     ]
@@ -104,6 +117,7 @@
                     "id": "timesPerWeek",
                     "type": "textarea",
                     "labelText": "How many times per week were you thinking to have your dog(s) attend daycare? (Please see attendance policy above)",
+                    "testValue": "We're thinking 3-4 times per week, typically Monday, Wednesday, Thursday, and Friday.",
                     "rules": [
                         "required"
                     ]
@@ -112,12 +126,14 @@
                     "id": "overnightDates",
                     "type": "textarea",
                     "labelText": "Desired dates of overnight boarding (if applicable)",
+                    "testValue": "July 15-22, 2026 and August 10-14, 2026",
                     "rules": []
                 },
                 {
                     "id": "boardingNote",
                     "type": "textarea",
                     "labelText": "*Please see daycare attendance requirements above. Assuming there is overnight boarding availability, we will reserve your stay per the boarding dates you enter above (pending a passed temperament test day and your confirmation within 48 hours after the temperament test day)",
+                    "testValue": "Understood. We will confirm within 48 hours after the temperament test.",
                     "rules": []
                 }
             ]
@@ -191,6 +207,7 @@
                     "id": "dogsAndPeople",
                     "type": "textarea",
                     "labelText": "Overall, how is your dog with other dogs and people?",
+                    "testValue": "Buddy is very friendly with both dogs and people. He loves to play and is quite social at the dog park. He gets along great with our neighbor's dogs and is always excited to meet new people.",
                     "rules": [
                         "required"
                     ]
@@ -199,6 +216,7 @@
                     "id": "aggression",
                     "type": "textarea",
                     "labelText": "Any aggression/dominating issues with other dogs and/or people (past and present)? Some examples of this are fighting, biting, snapping, mounting/humping, dominating play, ignoring social cues, growling, barking, raised lip, etc. Please see above temperament requirements and list all aggression/dominating issues that apply.",
+                    "testValue": "No aggression issues. Buddy has never shown any signs of fighting, biting, or snapping. He's gentle during play and respects other dogs' boundaries. He reads social cues well and backs off when other dogs show they need space.",
                     "rules": [
                         "required"
                     ]
@@ -207,6 +225,7 @@
                     "id": "anxiety",
                     "type": "textarea",
                     "labelText": "Any signs of anxiety and/or overexcitement issues? Some examples of this are barking while playing, separation anxiety, whining/crying, constant whining/crying, uncontrollable whining/crying, barking, constant barking, uncontrollable barking, ignoring social cues, fear, etc. Please see above temperament requirements and list all anxiety/overexcitement issues that apply.",
+                    "testValue": "Buddy occasionally barks when excited during playtime but calms down quickly with redirection. No separation anxiety or excessive whining. He's generally calm and well-adjusted.",
                     "rules": [
                         "required"
                     ]
@@ -215,6 +234,7 @@
                     "id": "crateAnxiety",
                     "type": "textarea",
                     "labelText": "Any signs of anxiety or aggression in a kennel/crate? Some examples of this are whining/crying, barking, won't lay down, can't seem to relax, panting, drooling, growling, snapping, etc. Please see above temperament requirements and list all anxiety issues in a crate that apply.",
+                    "testValue": "Buddy is comfortable in his crate. He settles down quickly and sleeps peacefully throughout the night. No whining, barking, or signs of stress when crated.",
                     "rules": [
                         "required"
                     ]
@@ -223,12 +243,14 @@
                     "id": "anythingElse",
                     "type": "textarea",
                     "labelText": "Anything else you think we should know?",
+                    "testValue": "Buddy is food motivated and responds well to treats. He knows basic commands like sit, stay, come, and down. He's fully housetrained and current on all vaccinations.",
                     "rules": []
                 },
                 {
                     "id": "testDay",
                     "type": "textarea",
                     "labelText": "Desired Temperament Test Day (Please see below for time/days and list more than one day, if possible, in case your preferred day isn't available)",
+                    "testValue": "Tuesday, March 4th or Wednesday, March 5th would work best for us. Thursday, March 6th would also be possible if needed.",
                     "rules": [
                         "required"
                     ]

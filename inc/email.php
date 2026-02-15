@@ -438,8 +438,8 @@ function email_process($request, $reqFields, $formConfig, $is_multipart = false)
         $headers = email_get_headers($apiElements, $formConfig);
 
         // Compose
-        $message = email_compose_message($apiElements, $formConfig, $uploaded_files);
-        $message_plain = email_compose_message_plain($apiElements, $formConfig, $uploaded_files);
+        $message = email_compose_message($apiElements, $formConfig, $uploaded_files, $subject);
+        $message_plain = email_compose_message_plain($apiElements, $formConfig, $uploaded_files, $subject);
 
         // Send (include from email and name from formConfig)
         enspyred_log("🔍 formConfig keys: " . implode(', ', array_keys($formConfig)));
@@ -857,9 +857,9 @@ function email_compose_address_plain($controls, $elementConfig) {
 /*---------------------------
 | Email: Compose (Plain Text)
 ---------------------------*/
-function email_compose_message_plain($apiElements, $formConfig, $uploaded_files = []) {
+function email_compose_message_plain($apiElements, $formConfig, $uploaded_files = [], $subject = null) {
     $fromName = $formConfig['fromName'] ?? 'Website Inquiry';
-    $subject = $formConfig['subject'] ?? 'Contact Form Submission';
+    $subject = $subject ?? $formConfig['subject'] ?? 'Contact Form Submission';
 
     $text = "Hello {$fromName},\n\n";
     $text .= "Website Form: {$subject}\n\n";
@@ -918,11 +918,11 @@ function email_compose_message_plain($apiElements, $formConfig, $uploaded_files 
 /*---------------------------
 | Email: Compose (HTML)
 ---------------------------*/
-function email_compose_message($apiElements, $formConfig, $uploaded_files = []) {
+function email_compose_message($apiElements, $formConfig, $uploaded_files = [], $subject = null) {
     enspyred_log("🚀 email_compose_message");
 
     $fromName = $formConfig['fromName'] ?? 'Website Inquiry';
-    $subject = $formConfig['subject'] ?? 'Contact Form Submission';
+    $subject = $subject ?? $formConfig['subject'] ?? 'Contact Form Submission';
 
     $message = "<p>Hello " . esc_html($fromName) . ",</p>";
     $message .= "<p><b>Website Form:</b> " . esc_html($subject) . "</p>";

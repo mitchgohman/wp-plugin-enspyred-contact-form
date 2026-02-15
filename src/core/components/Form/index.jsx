@@ -27,6 +27,7 @@ const UniversalForm = ({ globalSettings, formConfig, formId }) => {
         delaySubmitButton = true,
         hasHoneyPot = true,
         orientation = "side-by-side",
+        debug = false,
     } = formConfig;
 
     const { recaptcha_site_key: reCaptchaKey } = globalSettings;
@@ -76,7 +77,7 @@ const UniversalForm = ({ globalSettings, formConfig, formId }) => {
         ]
     );
 
-    const stateProps = getDefaultState({ elements, hasHoneyPot, subject });
+    const stateProps = getDefaultState({ elements, hasHoneyPot, subject, debug });
 
     // Whatever you want to manage as internal state
     const [state, dispatch] = useReducer(reducer, stateProps);
