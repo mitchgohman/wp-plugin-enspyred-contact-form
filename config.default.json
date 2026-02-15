@@ -1,7 +1,6 @@
 {
     "submitButtonText": "Send Message",
     "trackingId": "ContactForm",
-    "asyncApiCall": "/email/contact",
     "subject": "Website Contact Form Inquiry",
     "from": "noreply@example.com",
     "fromName": "Website Contact Form",

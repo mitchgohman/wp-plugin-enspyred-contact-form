@@ -371,6 +371,30 @@ function email_loop_api_elelemnts($apiElements, $callback) {
     }
 }
 
+// Interpolate {{token}} placeholders in a template string with form field values
+// Supports: {{controlId}} for simple fields, {{elementId.rowNum.columnKey}} for table cells
+function ecf_interpolate_template($template, $apiElements) {
+    // Build flat value map from all controls
+    $valueMap = [];
+    email_loop_api_elelemnts($apiElements, function($group, $control) use (&$valueMap) {
+        $valueMap[$control['id']] = $control['value'];
+    });
+
+    return preg_replace_callback('/\{\{(.+?)\}\}/', function($matches) use ($valueMap) {
+        $token = trim($matches[1]);
+
+        // Dot notation: elementId.rowNum.columnKey -> elementId-rRowNum-columnKey
+        if (strpos($token, '.') !== false) {
+            $parts = explode('.', $token);
+            if (count($parts) === 3) {
+                $token = $parts[0] . '-r' . $parts[1] . '-' . $parts[2];
+            }
+        }
+
+        return $valueMap[$token] ?? '';
+    }, $template);
+}
+
 /*---------------------------
 | Email: Process
 ---------------------------*/
@@ -396,10 +420,13 @@ function email_process($request, $reqFields, $formConfig, $is_multipart = false)
             $uploaded_files = ecf_process_uploaded_files($request, $formConfig);
         }
         // params
-        $subject = sanitize_text_field($formConfig['subject'] ?? $params['subject'] ?? 'Contact Form Submission');
+        $subjectTemplate = $formConfig['subject'] ?? $params['subject'] ?? 'Contact Form Submission';
         $token = sanitize_text_field($params['spamBusterToken']);
         $honeyPot = sanitize_text_field($params['honeyPot'] ?? '');
         $apiElements = $params['apiElements'];
+
+        // Interpolate subject template with form field values
+        $subject = sanitize_text_field(ecf_interpolate_template($subjectTemplate, $apiElements));
 
         // Validate
         email_validate($subject, $token, $apiElements, $reqFields, $honeyPot);

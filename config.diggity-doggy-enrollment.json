@@ -1,0 +1,236 @@
+{
+    "submitButtonText": "Submit and Schedule",
+    "trackingId": "ContactForm",
+    "subject": "Temp. Req. :: {{username}} ({{doginfo.1.name}},{{doginfo.2.name}},{{doginfo.3.name}},{{doginfo.4.name}})",
+    "from": "noreply@mg.enspyred.com",
+    "fromName": "Diggity D",
+    "recipients": "diggityd@diggitydoggy.com",
+    "cc": "",
+    "elements": [
+        {
+            "id": "customerinfo",
+            "legend": {
+                "title": "Customer Information"
+            },
+            "type": "fieldset",
+            "controls": [
+                {
+                    "id": "username",
+                    "type": "text",
+                    "labelText": "Customer Name(s)",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "phone",
+                    "type": "phone",
+                    "labelText": "Cell Number(s)",
+                    "rules": [
+                        "required",
+                        "phone"
+                    ]
+                },
+                {
+                    "id": "userEmail",
+                    "type": "text",
+                    "labelText": "Preferred Email",
+                    "rules": [
+                        "required",
+                        "email"
+                    ]
+                },
+                {
+                    "id": "homeAddress",
+                    "type": "text",
+                    "labelText": "Home Address (Street Address, City, State, & Zip)",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "veterinarian",
+                    "type": "text",
+                    "labelText": "Veterinarian",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "vetPhone",
+                    "type": "text",
+                    "labelText": "Veterinarian's Phone Number",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "emergencyContact",
+                    "type": "text",
+                    "labelText": "Emergency Contact",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "emergencyPhone",
+                    "type": "text",
+                    "labelText": "Emergency Contact Phone Number",
+                    "rules": [
+                        "required"
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "generalquestions",
+            "legend": {
+                "title": "General Questions"
+            },
+            "type": "fieldset",
+            "controls": [
+                {
+                    "id": "howDidYouHear",
+                    "type": "textarea",
+                    "labelText": "How did you hear of us? Please mention each source if there is more than one.",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "timesPerWeek",
+                    "type": "textarea",
+                    "labelText": "How many times per week were you thinking to have your dog(s) attend daycare? (Please see attendance policy above)",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "overnightDates",
+                    "type": "textarea",
+                    "labelText": "Desired dates of overnight boarding (if applicable)",
+                    "rules": []
+                },
+                {
+                    "id": "boardingNote",
+                    "type": "textarea",
+                    "labelText": "*Please see daycare attendance requirements above. Assuming there is overnight boarding availability, we will reserve your stay per the boarding dates you enter above (pending a passed temperament test day and your confirmation within 48 hours after the temperament test day)",
+                    "rules": []
+                }
+            ]
+        },
+        {
+            "id": "doginfo",
+            "legend": {
+                "title": "Dog Information"
+            },
+            "type": "table",
+            "controls": [],
+            "columns": [
+                {
+                    "key": "name",
+                    "label": "Name",
+                    "type": "text"
+                },
+                {
+                    "key": "age",
+                    "label": "Age",
+                    "type": "text"
+                },
+                {
+                    "key": "sex",
+                    "label": "Sex",
+                    "type": "text"
+                },
+                {
+                    "key": "weight",
+                    "label": "Weight",
+                    "type": "text"
+                },
+                {
+                    "key": "breed",
+                    "label": "Breed",
+                    "type": "text"
+                },
+                {
+                    "key": "fixed",
+                    "label": "Fixed?",
+                    "type": "text",
+                    "rules": []
+                }
+            ],
+            "rows": [
+                {
+                    "label": "1",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "label": "2"
+                },
+                {
+                    "label": "3"
+                },
+                {
+                    "label": "4"
+                }
+            ]
+        },
+        {
+            "id": "temperament",
+            "legend": {
+                "title": "Temperament"
+            },
+            "type": "fieldset",
+            "controls": [
+                {
+                    "id": "dogsAndPeople",
+                    "type": "textarea",
+                    "labelText": "Overall, how is your dog with other dogs and people?",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "aggression",
+                    "type": "textarea",
+                    "labelText": "Any aggression/dominating issues with other dogs and/or people (past and present)? Some examples of this are fighting, biting, snapping, mounting/humping, dominating play, ignoring social cues, growling, barking, raised lip, etc. Please see above temperament requirements and list all aggression/dominating issues that apply.",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "anxiety",
+                    "type": "textarea",
+                    "labelText": "Any signs of anxiety and/or overexcitement issues? Some examples of this are barking while playing, separation anxiety, whining/crying, constant whining/crying, uncontrollable whining/crying, barking, constant barking, uncontrollable barking, ignoring social cues, fear, etc. Please see above temperament requirements and list all anxiety/overexcitement issues that apply.",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "crateAnxiety",
+                    "type": "textarea",
+                    "labelText": "Any signs of anxiety or aggression in a kennel/crate? Some examples of this are whining/crying, barking, won't lay down, can't seem to relax, panting, drooling, growling, snapping, etc. Please see above temperament requirements and list all anxiety issues in a crate that apply.",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "anythingElse",
+                    "type": "textarea",
+                    "labelText": "Anything else you think we should know?",
+                    "rules": []
+                },
+                {
+                    "id": "testDay",
+                    "type": "textarea",
+                    "labelText": "Desired Temperament Test Day (Please see below for time/days and list more than one day, if possible, in case your preferred day isn't available)",
+                    "rules": [
+                        "required"
+                    ]
+                }
+            ]
+        }
+    ]
+}
