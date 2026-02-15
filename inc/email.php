@@ -412,6 +412,7 @@ function email_process($request, $reqFields, $formConfig, $is_multipart = false)
 
         // Compose
         $message = email_compose_message($apiElements, $formConfig, $uploaded_files);
+        $message_plain = email_compose_message_plain($apiElements, $formConfig, $uploaded_files);
 
         // Send (include from email and name from formConfig)
         enspyred_log("🔍 formConfig keys: " . implode(', ', array_keys($formConfig)));
@@ -424,7 +425,7 @@ function email_process($request, $reqFields, $formConfig, $is_multipart = false)
         enspyred_log("📧 Using from_email: " . $from_email);
         enspyred_log("📧 Using from_name: " . $from_name);
 
-        email_send($to, $subject, $message, $headers, $from_email, $from_name, $uploaded_files);
+        email_send($to, $subject, $message, $headers, $from_email, $from_name, $uploaded_files, $message_plain);
 
         // respond
         return new WP_REST_Response(['status' => 'success', 'message' => 'Your request has been sent, a representative will follow up with you shortly.'], 200);
@@ -758,7 +759,137 @@ function email_compose_address($controls, $elementConfig) {
 }
 
 /*---------------------------
-| Email: Compose
+| Email: Compose: Table (Plain Text)
+---------------------------*/
+function email_compose_table_plain($controls, $elementConfig) {
+    $columns = $elementConfig['columns'] ?? [];
+    $rows = $elementConfig['rows'] ?? [];
+    $elementId = $elementConfig['id'] ?? '';
+
+    $valueMap = [];
+    foreach ($controls as $control) {
+        $valueMap[$control['id']] = $control['value'];
+    }
+
+    $text = '';
+    foreach ($rows as $rowIndex => $row) {
+        $rowNum = $rowIndex + 1;
+        $rowLabel = $row['label'] ?? $rowNum;
+
+        // Check if entire row is empty
+        $rowHasValue = false;
+        foreach ($columns as $col) {
+            $controlId = $elementId . '-r' . $rowNum . '-' . $col['key'];
+            if (!empty($valueMap[$controlId])) {
+                $rowHasValue = true;
+                break;
+            }
+        }
+        if (!$rowHasValue) continue;
+
+        $text .= "  #{$rowLabel}:\n";
+        foreach ($columns as $col) {
+            $controlId = $elementId . '-r' . $rowNum . '-' . $col['key'];
+            $value = $valueMap[$controlId] ?? '';
+            if ($value !== '') {
+                $text .= "    {$col['label']}: {$value}\n";
+            }
+        }
+        $text .= "\n";
+    }
+
+    return $text;
+}
+
+/*---------------------------
+| Email: Compose: Address (Plain Text)
+---------------------------*/
+function email_compose_address_plain($controls, $elementConfig) {
+    $elementId = $elementConfig['id'] ?? '';
+
+    $valueMap = [];
+    foreach ($controls as $control) {
+        $valueMap[$control['id']] = $control['value'];
+    }
+
+    $address = $valueMap[$elementId . '-address'] ?? '';
+    $city = $valueMap[$elementId . '-city'] ?? '';
+    $state = $valueMap[$elementId . '-state'] ?? '';
+    $zip = $valueMap[$elementId . '-zip'] ?? '';
+    $country = $valueMap[$elementId . '-country'] ?? '';
+
+    $parts = [];
+    if ($address) $parts[] = $address;
+    if ($city) $parts[] = $city;
+    if ($state || $zip) $parts[] = trim($state . ' ' . $zip);
+    if ($country) $parts[] = $country;
+
+    return "  " . implode(', ', $parts) . "\n";
+}
+
+/*---------------------------
+| Email: Compose (Plain Text)
+---------------------------*/
+function email_compose_message_plain($apiElements, $formConfig, $uploaded_files = []) {
+    $fromName = $formConfig['fromName'] ?? 'Website Inquiry';
+    $subject = $formConfig['subject'] ?? 'Contact Form Submission';
+
+    $text = "Hello {$fromName},\n\n";
+    $text .= "Website Form: {$subject}\n\n";
+
+    // Build lookup: legend title -> element config
+    $elementsByTitle = [];
+    if (isset($formConfig['elements']) && is_array($formConfig['elements'])) {
+        foreach ($formConfig['elements'] as $element) {
+            $title = $element['legend']['title'] ?? '';
+            if ($title) {
+                $elementsByTitle[$title] = $element;
+            }
+        }
+    }
+
+    // Group controls by their API element group
+    $groupedData = [];
+    email_loop_api_elelemnts($apiElements, function($group, $control) use (&$groupedData) {
+        $groupedData[$group][] = $control;
+    });
+
+    foreach ($groupedData as $group => $controls) {
+        $elementConfig = $elementsByTitle[$group] ?? null;
+        $elementType = $elementConfig['type'] ?? 'fieldset';
+
+        $text .= strtoupper($group) . "\n";
+        $text .= str_repeat('-', strlen($group)) . "\n";
+
+        if ($elementType === 'table') {
+            $text .= email_compose_table_plain($controls, $elementConfig);
+        } elseif ($elementType === 'address') {
+            $text .= email_compose_address_plain($controls, $elementConfig);
+        } else {
+            foreach ($controls as $control) {
+                $text .= "  {$control['labelText']}: {$control['value']}\n";
+            }
+        }
+        $text .= "\n";
+    }
+
+    if (!empty($uploaded_files)) {
+        $text .= "ATTACHED FILES\n";
+        $text .= "--------------\n";
+        foreach ($uploaded_files as $field_name => $file_info) {
+            $file_size = round($file_info['size'] / 1024, 1);
+            $text .= "  {$file_info['name']} ({$file_size} KB)\n";
+        }
+        $text .= "\n";
+    }
+
+    $text .= "Cheers,\nYour Web Team\n";
+
+    return $text;
+}
+
+/*---------------------------
+| Email: Compose (HTML)
 ---------------------------*/
 function email_compose_message($apiElements, $formConfig, $uploaded_files = []) {
     enspyred_log("🚀 email_compose_message");
@@ -823,7 +954,7 @@ function email_compose_message($apiElements, $formConfig, $uploaded_files = []) 
 /*---------------------------
 | Email: Send
 ---------------------------*/
-function email_send($to, $subject, $message, $headers, $from_email = '', $from_name = '', $attachments = []) {
+function email_send($to, $subject, $message, $headers, $from_email = '', $from_name = '', $attachments = [], $message_plain = '') {
     enspyred_log("🚀 email_send");
     enspyred_log("🧾 Headers: " . implode('; ', $headers));
     enspyred_log("✉️ Subject: " . $subject);
@@ -841,6 +972,15 @@ function email_send($to, $subject, $message, $headers, $from_email = '', $from_n
         add_filter('wp_mail_from_name', function() use ($from_name) {
             return $from_name;
         });
+    }
+
+    // Set plain text AltBody for email clients that prefer it
+    $altbody_callback = null;
+    if (!empty($message_plain)) {
+        $altbody_callback = function($phpmailer) use ($message_plain) {
+            $phpmailer->AltBody = $message_plain;
+        };
+        add_action('phpmailer_init', $altbody_callback, 999);
     }
 
     // Prepare attachment paths for wp_mail
@@ -862,6 +1002,10 @@ function email_send($to, $subject, $message, $headers, $from_email = '', $from_n
 
     if (!empty($from_name)) {
         remove_all_filters('wp_mail_from_name');
+    }
+
+    if ($altbody_callback) {
+        remove_action('phpmailer_init', $altbody_callback, 999);
     }
 
     if (!$mail_sent) {
