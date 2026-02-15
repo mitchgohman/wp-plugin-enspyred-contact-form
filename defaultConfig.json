@@ -121,6 +121,64 @@
             "sameAs": "billing"
         },
         {
+            "id": "doginfo",
+            "legend": {
+                "title": "Dog Information"
+            },
+            "type": "table",
+            "controls": [],
+            "columns": [
+                {
+                    "key": "name",
+                    "label": "Name",
+                    "type": "text"
+                },
+                {
+                    "key": "age",
+                    "label": "Age",
+                    "type": "text"
+                },
+                {
+                    "key": "sex",
+                    "label": "Sex",
+                    "type": "text"
+                },
+                {
+                    "key": "weight",
+                    "label": "Weight",
+                    "type": "text"
+                },
+                {
+                    "key": "breed",
+                    "label": "Breed",
+                    "type": "text"
+                },
+                {
+                    "key": "fixed",
+                    "label": "Fixed?",
+                    "type": "text",
+                    "rules": []
+                }
+            ],
+            "rows": [
+                {
+                    "label": "1",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "label": "2"
+                },
+                {
+                    "label": "3"
+                },
+                {
+                    "label": "4"
+                }
+            ]
+        },
+        {
             "id": "request",
             "legend": {
                 "title": "Request"

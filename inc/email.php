@@ -673,6 +673,91 @@ function email_get_headers_replyTo($apiElements) {
 }
 
 /*---------------------------
+| Email: Compose: Table
+---------------------------*/
+function email_compose_table($controls, $elementConfig) {
+    $columns = $elementConfig['columns'] ?? [];
+    $rows = $elementConfig['rows'] ?? [];
+    $elementId = $elementConfig['id'] ?? '';
+
+    // Build a value map: controlId -> value
+    $valueMap = [];
+    foreach ($controls as $control) {
+        $valueMap[$control['id']] = $control['value'];
+    }
+
+    $html = '<table style="width:100%;border-collapse:collapse;margin:8px 0;">';
+
+    // Header row
+    $html .= '<tr>';
+    $html .= '<th style="padding:6px 8px;border:1px solid #ddd;background:#f5f5f5;text-align:left;">#</th>';
+    foreach ($columns as $col) {
+        $html .= '<th style="padding:6px 8px;border:1px solid #ddd;background:#f5f5f5;text-align:left;">' . esc_html($col['label']) . '</th>';
+    }
+    $html .= '</tr>';
+
+    // Data rows
+    foreach ($rows as $rowIndex => $row) {
+        $rowNum = $rowIndex + 1;
+        $rowLabel = $row['label'] ?? $rowNum;
+
+        // Check if entire row is empty
+        $rowHasValue = false;
+        foreach ($columns as $col) {
+            $controlId = $elementId . '-r' . $rowNum . '-' . $col['key'];
+            if (!empty($valueMap[$controlId])) {
+                $rowHasValue = true;
+                break;
+            }
+        }
+        if (!$rowHasValue) continue;
+
+        $html .= '<tr>';
+        $html .= '<td style="padding:6px 8px;border:1px solid #ddd;font-weight:bold;">' . esc_html($rowLabel) . '</td>';
+        foreach ($columns as $col) {
+            $controlId = $elementId . '-r' . $rowNum . '-' . $col['key'];
+            $value = $valueMap[$controlId] ?? '';
+            $html .= '<td style="padding:6px 8px;border:1px solid #ddd;">' . esc_html($value) . '</td>';
+        }
+        $html .= '</tr>';
+    }
+
+    $html .= '</table>';
+    return $html;
+}
+
+/*---------------------------
+| Email: Compose: Address
+---------------------------*/
+function email_compose_address($controls, $elementConfig) {
+    $elementId = $elementConfig['id'] ?? '';
+
+    // Build a value map from controls
+    $valueMap = [];
+    foreach ($controls as $control) {
+        $valueMap[$control['id']] = $control['value'];
+    }
+
+    $address = $valueMap[$elementId . '-address'] ?? '';
+    $city = $valueMap[$elementId . '-city'] ?? '';
+    $state = $valueMap[$elementId . '-state'] ?? '';
+    $zip = $valueMap[$elementId . '-zip'] ?? '';
+    $country = $valueMap[$elementId . '-country'] ?? '';
+
+    // Build single-line address: 123 Anywhere St, Colorado Springs, CA 80922, USA
+    $parts = [];
+    if ($address) $parts[] = esc_html($address);
+    if ($city) $parts[] = esc_html($city);
+    if ($state || $zip) {
+        $stateZip = trim(esc_html($state) . ' ' . esc_html($zip));
+        $parts[] = $stateZip;
+    }
+    if ($country) $parts[] = esc_html($country);
+
+    return '<p>' . implode(', ', $parts) . '</p>';
+}
+
+/*---------------------------
 | Email: Compose
 ---------------------------*/
 function email_compose_message($apiElements, $formConfig, $uploaded_files = []) {
@@ -684,14 +769,40 @@ function email_compose_message($apiElements, $formConfig, $uploaded_files = []) 
     $message = "<p>Hello " . esc_html($fromName) . ",</p>";
     $message .= "<p><b>Website Form:</b> " . esc_html($subject) . "</p>";
 
-    $groupedControls = [];
+    // Build lookup: legend title -> element config (for type-aware rendering)
+    $elementsByTitle = [];
+    if (isset($formConfig['elements']) && is_array($formConfig['elements'])) {
+        foreach ($formConfig['elements'] as $element) {
+            $title = $element['legend']['title'] ?? '';
+            if ($title) {
+                $elementsByTitle[$title] = $element;
+            }
+        }
+    }
 
-    email_loop_api_elelemnts($apiElements, function($group, $control) use (&$groupedControls) {
-        $groupedControls[$group][] = "<li><b>" . $control['labelText'] . "</b> " . $control['value'] . "</li>";
+    // Group controls by their API element group
+    $groupedData = [];
+    email_loop_api_elelemnts($apiElements, function($group, $control) use (&$groupedData) {
+        $groupedData[$group][] = $control;
     });
 
-    foreach ($groupedControls as $group => $items) {
-        $message .= "<h3>$group</h3><ul>" . implode('', $items) . "</ul>";
+    foreach ($groupedData as $group => $controls) {
+        $elementConfig = $elementsByTitle[$group] ?? null;
+        $elementType = $elementConfig['type'] ?? 'fieldset';
+
+        $message .= "<h3>" . esc_html($group) . "</h3>";
+
+        if ($elementType === 'table') {
+            $message .= email_compose_table($controls, $elementConfig);
+        } elseif ($elementType === 'address') {
+            $message .= email_compose_address($controls, $elementConfig);
+        } else {
+            $message .= "<ul>";
+            foreach ($controls as $control) {
+                $message .= "<li><b>" . esc_html($control['labelText']) . "</b> " . esc_html($control['value']) . "</li>";
+            }
+            $message .= "</ul>";
+        }
     }
 
     // Add information about attached files

@@ -42,6 +42,10 @@ const enhanceElements = (
             return enhanceAddressElement(element, testAddFiller);
         }
 
+        if (type === "table") {
+            return enhanceTableElement(element, testAddFiller);
+        }
+
         return enhanceElement(element, testAddFiller);
     });
 
@@ -129,6 +133,45 @@ const enhanceAddressElement = (element, testAddFiller) => {
             rules,
         });
     }
+
+    return {
+        ...element,
+        controls,
+    };
+};
+
+// Table Augmentation
+const enhanceTableElement = (element, testAddFiller) => {
+    const { id, columns, rows } = element;
+
+    const controls = [];
+
+    rows.forEach((row, rowIndex) => {
+        const rowNum = rowIndex + 1;
+
+        columns.forEach((column) => {
+            // Row rules override column rules
+            const rules =
+                row.rules !== undefined ? row.rules : column.rules || [];
+
+            const control = {
+                id: `${id}-r${rowNum}-${column.key}`,
+                type: column.type || "text",
+                labelText: `Row ${rowNum} - ${column.label}`,
+                value: testAddFiller ? `Test ${column.label} ${rowNum}` : "",
+                rules,
+            };
+
+            if (column.type === "select" && column.options) {
+                control.options = column.options;
+                control.value = testAddFiller
+                    ? column.options[0] || ""
+                    : "";
+            }
+
+            controls.push(control);
+        });
+    });
 
     return {
         ...element,
