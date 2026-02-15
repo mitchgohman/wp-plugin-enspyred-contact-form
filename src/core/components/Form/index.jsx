@@ -28,6 +28,7 @@ const UniversalForm = ({ globalSettings, formConfig, formId }) => {
         hasHoneyPot = true,
         orientation = "side-by-side",
         debug = false,
+        maxWidth = "600px",
     } = formConfig;
 
     const { recaptcha_site_key: reCaptchaKey } = globalSettings;
@@ -66,6 +67,7 @@ const UniversalForm = ({ globalSettings, formConfig, formId }) => {
             delaySubmitButton,
             globalSettings,
             orientation,
+            maxWidth,
         }),
         [
             submitButtonText,
@@ -74,6 +76,7 @@ const UniversalForm = ({ globalSettings, formConfig, formId }) => {
             delaySubmitButton,
             globalSettings,
             orientation,
+            maxWidth,
         ]
     );
 

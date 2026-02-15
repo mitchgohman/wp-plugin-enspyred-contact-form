@@ -124,6 +124,9 @@ function ecf_admin_settings_page() {
                             <option value="mailtrap" <?php selected($global_settings['mail_driver'] ?? 'mailtrap', 'mailtrap'); ?> >
                                 Mailtrap (Testing)
                             </option>
+                            <option value="mailgun" <?php selected($global_settings['mail_driver'] ?? 'mailtrap', 'mailgun'); ?> >
+                                Mailgun API
+                            </option>
                             <option value="custom" <?php selected($global_settings['mail_driver'] ?? 'mailtrap', 'custom'); ?> >
                                 Custom SMTP
                             </option>
@@ -167,6 +170,86 @@ function ecf_admin_settings_page() {
                         </td>
                     </tr>
                 </table>
+            </div>
+            <!-- Mailgun Settings -->
+            <div id="mailgun-settings" style="display: <?php echo ($global_settings['mail_driver'] ?? 'mailtrap') === 'mailgun' ? 'block' : 'none'; ?>;">
+                <h3>Mailgun API Configuration</h3>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="mailgun_api_key">API Key</label>
+                        </th>
+                        <td>
+                            <div style="position: relative; display: inline-block;">
+                                <input
+                                    type="password"
+                                    id="mailgun_api_key"
+                                    name="mailgun_api_key"
+                                    value="<?php echo esc_attr($global_settings['mailgun_api_key'] ?? ''); ?>"
+                                    class="regular-text"
+                                    style="padding-right: 40px;"
+                                />
+                                <button
+                                    type="button"
+                                    id="toggle_mailgun_api_key"
+                                    style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #666; font-size: 14px; padding: 0; width: 20px; height: 20px;"
+                                    title="Show/Hide API Key"
+                                    onclick="toggleMailgunApiKeyVisibility()"
+                                >
+                                    👁️
+                                </button>
+                            </div>
+                            <p class="description">Your Mailgun API key (starts with "key-")</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="mailgun_domain">Domain</label>
+                        </th>
+                        <td>
+                            <input
+                                type="text"
+                                id="mailgun_domain"
+                                name="mailgun_domain"
+                                value="<?php echo esc_attr($global_settings['mailgun_domain'] ?? ''); ?>"
+                                class="regular-text"
+                                placeholder="mg.example.com"
+                            />
+                            <p class="description">Your Mailgun domain</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="mailgun_region">Region</label>
+                        </th>
+                        <td>
+                            <select id="mailgun_region" name="mailgun_region">
+                                <option value="us" <?php selected($global_settings['mailgun_region'] ?? 'us', 'us'); ?> >
+                                    US (api.mailgun.net)
+                                </option>
+                                <option value="eu" <?php selected($global_settings['mailgun_region'] ?? 'us', 'eu'); ?> >
+                                    EU (api.eu.mailgun.net)
+                                </option>
+                            </select>
+                            <p class="description">Select your Mailgun region</p>
+                        </td>
+                    </tr>
+                </table>
+                <script>
+                function toggleMailgunApiKeyVisibility() {
+                    const input = document.getElementById('mailgun_api_key');
+                    const button = document.getElementById('toggle_mailgun_api_key');
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        button.innerHTML = '🙈';
+                        button.title = 'Hide API Key';
+                    } else {
+                        input.type = 'password';
+                        button.innerHTML = '👁️';
+                        button.title = 'Show API Key';
+                    }
+                }
+                </script>
             </div>
             <!-- Custom SMTP Settings -->
             <div id="custom-smtp-settings" style="display: <?php echo ($global_settings['mail_driver'] ?? 'mailtrap') === 'custom' ? 'block' : 'none'; ?>;">
@@ -260,12 +343,20 @@ function ecf_admin_settings_page() {
             function toggleMailSettings() {
                 const driver = document.getElementById('mail_driver').value;
                 const mailtrapSettings = document.getElementById('mailtrap-settings');
+                const mailgunSettings = document.getElementById('mailgun-settings');
                 const customSettings = document.getElementById('custom-smtp-settings');
+
+                // Hide all sections first
+                mailtrapSettings.style.display = 'none';
+                mailgunSettings.style.display = 'none';
+                customSettings.style.display = 'none';
+
+                // Show the selected section
                 if (driver === 'mailtrap') {
                     mailtrapSettings.style.display = 'block';
-                    customSettings.style.display = 'none';
-                } else {
-                    mailtrapSettings.style.display = 'none';
+                } else if (driver === 'mailgun') {
+                    mailgunSettings.style.display = 'block';
+                } else if (driver === 'custom') {
                     customSettings.style.display = 'block';
                 }
             }

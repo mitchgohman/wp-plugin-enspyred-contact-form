@@ -979,6 +979,108 @@ function email_compose_message($apiElements, $formConfig, $uploaded_files = [], 
 }
 
 /*---------------------------
+| Email: Send via Mailgun API
+---------------------------*/
+function email_send_mailgun($to, $subject, $message, $headers, $from_email, $from_name, $attachments = [], $message_plain = '') {
+    enspyred_log("🚀 email_send_mailgun");
+
+    $global_settings = get_option('ecf_global_settings', []);
+    $api_key = $global_settings['mailgun_api_key'] ?? '';
+    $domain = $global_settings['mailgun_domain'] ?? '';
+    $region = $global_settings['mailgun_region'] ?? 'us';
+
+    if (empty($api_key) || empty($domain)) {
+        throw new Exception("Mailgun API key or domain not configured");
+    }
+
+    // Determine API endpoint based on region
+    $api_endpoint = $region === 'eu'
+        ? "https://api.eu.mailgun.net/v3/{$domain}/messages"
+        : "https://api.mailgun.net/v3/{$domain}/messages";
+
+    // Parse headers to extract reply-to, cc, bcc
+    $reply_to = '';
+    $cc = '';
+    $bcc = '';
+
+    foreach ($headers as $header) {
+        if (stripos($header, 'Reply-To:') === 0) {
+            $reply_to = trim(substr($header, 9));
+        } elseif (stripos($header, 'Cc:') === 0) {
+            $cc = trim(substr($header, 3));
+        } elseif (stripos($header, 'Bcc:') === 0) {
+            $bcc = trim(substr($header, 4));
+        }
+    }
+
+    // Prepare POST data
+    $post_data = [
+        'from' => !empty($from_name) ? "{$from_name} <{$from_email}>" : $from_email,
+        'to' => is_array($to) ? implode(', ', $to) : $to,
+        'subject' => $subject,
+        'html' => $message,
+    ];
+
+    if (!empty($message_plain)) {
+        $post_data['text'] = $message_plain;
+    }
+
+    if (!empty($reply_to)) {
+        $post_data['h:Reply-To'] = $reply_to;
+    }
+
+    if (!empty($cc)) {
+        $post_data['cc'] = $cc;
+    }
+
+    if (!empty($bcc)) {
+        $post_data['bcc'] = $bcc;
+    }
+
+    // Handle attachments
+    $has_attachments = !empty($attachments);
+    $boundary = null;
+    $post_fields = null;
+
+    if ($has_attachments) {
+        // Use CURLFile for attachments
+        $post_fields = $post_data;
+        foreach ($attachments as $field_name => $file_info) {
+            enspyred_log("📎 Attaching to Mailgun: " . $file_info['name']);
+            $post_fields['attachment'][] = new CURLFile($file_info['path'], $file_info['type'], $file_info['name']);
+        }
+    } else {
+        // Simple form data without files
+        $post_fields = $post_data;
+    }
+
+    // Send via cURL
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $api_endpoint);
+    curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    curl_setopt($ch, CURLOPT_USERPWD, 'api:' . $api_key);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $post_fields);
+
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_error = curl_error($ch);
+    curl_close($ch);
+
+    enspyred_log("📤 Mailgun API response code: " . $http_code);
+    enspyred_log("📤 Mailgun API response: " . $response);
+
+    if ($http_code !== 200) {
+        enspyred_log("❌ Mailgun API error: " . $curl_error . " | Response: " . $response);
+        throw new Exception("Failed to send email via Mailgun API (HTTP {$http_code})");
+    }
+
+    enspyred_log('✅ Email sent successfully via Mailgun API!');
+    return true;
+}
+
+/*---------------------------
 | Email: Send
 ---------------------------*/
 function email_send($to, $subject, $message, $headers, $from_email = '', $from_name = '', $attachments = [], $message_plain = '') {
@@ -987,6 +1089,18 @@ function email_send($to, $subject, $message, $headers, $from_email = '', $from_n
     enspyred_log("✉️ Subject: " . $subject);
     enspyred_log("📄 Message Length: " . strlen($message));
     enspyred_log("📎 Attachments: " . count($attachments));
+
+    // Check if we should use Mailgun API
+    $global_settings = get_option('ecf_global_settings', []);
+    $mail_driver = $global_settings['mail_driver'] ?? 'mailtrap';
+
+    if ($mail_driver === 'mailgun') {
+        enspyred_log("📧 Using Mailgun API for email delivery");
+        return email_send_mailgun($to, $subject, $message, $headers, $from_email, $from_name, $attachments, $message_plain);
+    }
+
+    // Use wp_mail for mailtrap and custom SMTP
+    enspyred_log("📧 Using wp_mail for email delivery");
 
     // Set up from email and name if provided
     if (!empty($from_email)) {

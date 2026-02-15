@@ -5,7 +5,8 @@
     "from": "noreply@mg.enspyred.com",
     "fromName": "Diggity D",
     "recipients": "diggityd@diggitydoggy.com",
-    "cc": "",
+    "cc": "meatch@me.com",
+    "maxWidth": "auto",
     "orientation": "stacked",
     "debug": true,
     "elements": [

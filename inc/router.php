@@ -64,6 +64,9 @@ function ecf_handle_admin_form_submission() {
             $global_settings['mail_driver'] = isset($_POST['mail_driver']) ? sanitize_text_field(wp_unslash($_POST['mail_driver'])) : 'mailtrap';
             $global_settings['mailtrap_username'] = isset($_POST['mailtrap_username']) ? sanitize_text_field(wp_unslash($_POST['mailtrap_username'])) : '';
             $global_settings['mailtrap_password'] = isset($_POST['mailtrap_password']) ? sanitize_text_field(wp_unslash($_POST['mailtrap_password'])) : '';
+            $global_settings['mailgun_api_key'] = isset($_POST['mailgun_api_key']) ? sanitize_text_field(wp_unslash($_POST['mailgun_api_key'])) : '';
+            $global_settings['mailgun_domain'] = isset($_POST['mailgun_domain']) ? sanitize_text_field(wp_unslash($_POST['mailgun_domain'])) : '';
+            $global_settings['mailgun_region'] = isset($_POST['mailgun_region']) ? sanitize_text_field(wp_unslash($_POST['mailgun_region'])) : 'us';
             $global_settings['smtp_host'] = isset($_POST['smtp_host']) ? sanitize_text_field(wp_unslash($_POST['smtp_host'])) : '';
             $global_settings['smtp_port'] = isset($_POST['smtp_port']) ? intval(wp_unslash($_POST['smtp_port'])) : 587;
             $global_settings['smtp_username'] = isset($_POST['smtp_username']) ? sanitize_text_field(wp_unslash($_POST['smtp_username'])) : '';

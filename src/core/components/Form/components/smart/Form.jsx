@@ -7,11 +7,11 @@ import { useUniversalForm } from "@Core/components/Form/context/useUniversalForm
 
 //styles
 const FormStyled = styled.form`
-    max-width: 600px;
+    max-width: ${({ $maxWidth }) => $maxWidth};
 `;
 
 const Form = ({ children }) => {
-    const { elements, onSubmit, formStatus } = useUniversalForm();
+    const { elements, onSubmit, formStatus, maxWidth } = useUniversalForm();
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -20,8 +20,14 @@ const Form = ({ children }) => {
 
     if (formStatus === "submitted") return null;
 
+    const resolvedMaxWidth = maxWidth || "600px";
+
     return (
-        <FormStyled data-version={__PLUGIN_VERSION__} onSubmit={handleSubmit}>
+        <FormStyled
+            data-version={__PLUGIN_VERSION__}
+            onSubmit={handleSubmit}
+            $maxWidth={resolvedMaxWidth}
+        >
             {children}
         </FormStyled>
     );
