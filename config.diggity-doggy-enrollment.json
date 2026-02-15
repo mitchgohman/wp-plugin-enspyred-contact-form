@@ -6,6 +6,7 @@
     "fromName": "Diggity D",
     "recipients": "diggityd@diggitydoggy.com",
     "cc": "",
+    "orientation": "stacked",
     "elements": [
         {
             "id": "customerinfo",
@@ -58,10 +59,11 @@
                 },
                 {
                     "id": "vetPhone",
-                    "type": "text",
+                    "type": "phone",
                     "labelText": "Veterinarian's Phone Number",
                     "rules": [
-                        "required"
+                        "required",
+                        "phone"
                     ]
                 },
                 {
@@ -74,10 +76,11 @@
                 },
                 {
                     "id": "emergencyPhone",
-                    "type": "text",
+                    "type": "phone",
                     "labelText": "Emergency Contact Phone Number",
                     "rules": [
-                        "required"
+                        "required",
+                        "phone"
                     ]
                 }
             ]

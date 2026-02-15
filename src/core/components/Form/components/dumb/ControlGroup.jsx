@@ -4,17 +4,28 @@ import PropTypes from "prop-types";
 // components
 import Label from "./Label";
 
+// context
+import { useUniversalForm } from "@Core/components/Form/context/useUniversalForm.js";
+
 // styles
 const ControlGroupStyled = styled.div`
     display: flex;
+    flex-direction: ${({ $stacked }) => ($stacked ? "column" : "row")};
     margin-bottom: 10px;
-    gap: 10px;
+    gap: ${({ $stacked }) => ($stacked ? "4px" : "10px")};
 `;
 
 const LabelWrapper = styled.div`
-    flex: 0 0 150px;
-    text-align: right;
-    padding-top: 3px;
+    ${({ $stacked }) =>
+        $stacked
+            ? `
+        text-align: left;
+    `
+            : `
+        flex: 0 0 150px;
+        text-align: right;
+        padding-top: 3px;
+    `}
 `;
 
 const ControlWrapper = styled.div`
@@ -33,10 +44,15 @@ const ControlGroup = ({
     labelText,
     errorMessage = "",
     isRequired = false,
+    orientation,
 }) => {
+    const { orientation: globalOrientation } = useUniversalForm();
+    const resolved = orientation || globalOrientation || "side-by-side";
+    const stacked = resolved === "stacked";
+
     return (
-        <ControlGroupStyled>
-            <LabelWrapper>
+        <ControlGroupStyled $stacked={stacked}>
+            <LabelWrapper $stacked={stacked}>
                 <Label
                     inputId={id}
                     labelText={labelText}
@@ -64,4 +80,5 @@ ControlGroup.propTypes = {
     labelText: PropTypes.string.isRequired,
     errorMessage: PropTypes.string,
     isRequired: PropTypes.bool,
+    orientation: PropTypes.oneOf(["side-by-side", "stacked"]),
 };

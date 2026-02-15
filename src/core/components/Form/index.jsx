@@ -26,6 +26,7 @@ const UniversalForm = ({ globalSettings, formConfig, formId }) => {
         submitButtonText = "Submit",
         delaySubmitButton = true,
         hasHoneyPot = true,
+        orientation = "side-by-side",
     } = formConfig;
 
     const { recaptcha_site_key: reCaptchaKey } = globalSettings;
@@ -63,6 +64,7 @@ const UniversalForm = ({ globalSettings, formConfig, formId }) => {
             asyncApiCall: customAsyncApiCall,
             delaySubmitButton,
             globalSettings,
+            orientation,
         }),
         [
             submitButtonText,
@@ -70,6 +72,7 @@ const UniversalForm = ({ globalSettings, formConfig, formId }) => {
             customAsyncApiCall,
             delaySubmitButton,
             globalSettings,
+            orientation,
         ]
     );
 
