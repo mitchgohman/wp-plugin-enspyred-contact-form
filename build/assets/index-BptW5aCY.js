@@ -102,7 +102,7 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
     border-radius: 5px;
 `,AE=()=>{const{globalMessage:e}=Et(),{status:n,message:a}=e;return n==="none"?null:K.jsx(TE,{$status:n,dangerouslySetInnerHTML:{__html:a}})},NE=Le.form`
     max-width: ${({$maxWidth:e})=>e};
-`,fv=({children:e})=>{const{elements:n,onSubmit:a,formStatus:i,maxWidth:u}=Et(),s=h=>{h.preventDefault(),a(n)};if(i==="submitted")return null;const f=u||"600px";return K.jsx(NE,{"data-version":"1.1.0",onSubmit:s,$maxWidth:f,children:e})};fv.propTypes={children:N.any};const xE=Le.fieldset`
+`,fv=({children:e})=>{const{elements:n,onSubmit:a,formStatus:i,maxWidth:u}=Et(),s=h=>{h.preventDefault(),a(n)};if(i==="submitted")return null;const f=u||"600px";return K.jsx(NE,{"data-version":"1.1.2",onSubmit:s,$maxWidth:f,children:e})};fv.propTypes={children:N.any};const xE=Le.fieldset`
     ${({$isHidden:e})=>e&&"display: none;"}
 
     margin-bottom: 50px;
@@ -341,4 +341,4 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
         box-sizing: border-box;
     }
 `,rR=e=>K.jsx(nR,{children:K.jsx(bb,{...e})}),aR=async e=>{var n;try{return(await ta.get(`config?key=${encodeURIComponent(e)}`)).data}catch(a){throw new Error(`Config load failed (${((n=a.response)==null?void 0:n.status)||"network error"})`)}},gg=()=>{document.querySelectorAll(".enspyred-plugin-contact-form").forEach(async n=>{if(n.__ecf_mounted)return;n.__ecf_mounted=!0;const a=n.dataset.ecfConfig||"default",i=J$.createRoot(n);i.render(K.jsx("div",{"aria-live":"polite",children:"Loading form…"}));try{const u=await aR(a),{globalSettings:s,formConfig:f}=u;N8({formConfig:f}),i.render(K.jsx(rR,{globalSettings:s,formConfig:f,formId:a}))}catch(u){Ya(u),i.render(K.jsxs("div",{"aria-live":"polite",style:{color:"crimson"},children:["Failed to load form config: ",a]}))}})};document.readyState==="loading"?document.addEventListener("DOMContentLoaded",gg):gg();
-//# sourceMappingURL=index-DxezCD_F.js.map
+//# sourceMappingURL=index-BptW5aCY.js.map
