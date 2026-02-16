@@ -24,6 +24,7 @@ const UniversalForm = ({ globalSettings, formConfig, formId }) => {
         subject,
         trackingId,
         submitButtonText = "Submit",
+        submitButtonAlign = "right",
         delaySubmitButton = true,
         hasHoneyPot = true,
         orientation = "side-by-side",
@@ -62,6 +63,7 @@ const UniversalForm = ({ globalSettings, formConfig, formId }) => {
     const nonStateProps = useMemo(
         () => ({
             submitButtonText,
+            submitButtonAlign,
             trackingId,
             asyncApiCall: customAsyncApiCall,
             delaySubmitButton,
@@ -71,6 +73,7 @@ const UniversalForm = ({ globalSettings, formConfig, formId }) => {
         }),
         [
             submitButtonText,
+            submitButtonAlign,
             trackingId,
             customAsyncApiCall,
             delaySubmitButton,

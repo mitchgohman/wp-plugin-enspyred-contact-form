@@ -9,16 +9,28 @@ import Button from "../dumb/Button/index";
 
 //styles
 const SubmitButtonStyled = styled.div`
-    margin-left: 174px;
+    display: flex;
+    justify-content: ${({ $align }) => $align};
 `;
 
 const SHOW_SUBMIT_BUTTON_DELAY = 3000;
+
+// Helper function to map alignment to flexbox values
+const getFlexAlignment = (align) => {
+    const alignmentMap = {
+        left: "flex-start",
+        center: "center",
+        right: "flex-end",
+    };
+    return alignmentMap[align] || alignmentMap.right;
+};
 
 // component
 const SubmitButton = () => {
     const {
         formStatus,
         submitButtonText,
+        submitButtonAlign,
         delaySubmitButton,
         honeyPot: { isEmpty, isTestingHoneyPot },
     } = useUniversalForm();
@@ -51,7 +63,7 @@ const SubmitButton = () => {
     }, [formStatus, isDisabled, isEmpty, submitButtonText, delaySubmitButton]);
 
     return (
-        <SubmitButtonStyled>
+        <SubmitButtonStyled $align={getFlexAlignment(submitButtonAlign)}>
             <Button type="submit" disabled={isDisabled}>
                 {buttonText}
             </Button>

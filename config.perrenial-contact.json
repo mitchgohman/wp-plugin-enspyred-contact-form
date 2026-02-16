@@ -1,0 +1,75 @@
+{
+    "submitButtonText": "Send",
+    "submitButtonAlign": "right",
+    "trackingId": "ContactForm",
+    "subject": "PBS: Website Contact Form: {{name}}",
+    "from": "noreply@mg.enspyred.com",
+    "fromName": "Perennial Bookkeeping",
+    "recipients": "perennialbookkeeping@gmail.com",
+    "cc": "",
+    "maxWidth": "auto",
+    "orientation": "stacked",
+    "debug": false,
+    "elements": [
+        {
+            "id": "contactinfo",
+            "legend": {
+                "title": "Contact Information"
+            },
+            "type": "fieldset",
+            "controls": [
+                {
+                    "id": "name",
+                    "type": "text",
+                    "labelText": "Name",
+                    "placeholder": "Name",
+                    "testValue": "Mitch Test",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "email",
+                    "type": "text",
+                    "labelText": "Email Address",
+                    "placeholder": "Email Address",
+                    "testValue": "john.doe@example.com",
+                    "rules": [
+                        "required",
+                        "email"
+                    ]
+                },
+                {
+                    "id": "company",
+                    "type": "text",
+                    "labelText": "Company Name",
+                    "placeholder": "Company Name",
+                    "testValue": "Acme Corporation",
+                    "rules": [
+                        "required"
+                    ]
+                },
+                {
+                    "id": "phone",
+                    "type": "phone",
+                    "labelText": "Phone (optional)",
+                    "placeholder": "Phone (optional)",
+                    "testValue": "+16265904974",
+                    "rules": [
+                        "phone"
+                    ]
+                },
+                {
+                    "id": "message",
+                    "type": "textarea",
+                    "labelText": "Message",
+                    "placeholder": "Message",
+                    "testValue": "I would like to learn more about your services.",
+                    "rules": [
+                        "required"
+                    ]
+                }
+            ]
+        }
+    ]
+}
